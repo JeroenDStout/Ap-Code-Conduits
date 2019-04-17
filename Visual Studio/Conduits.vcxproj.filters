@@ -7,6 +7,27 @@
     <ClInclude Include="..\Pubc\Register.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="..\Pubc\Interface Conduit.h">
+      <Filter>Raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Interface Messages.h">
+      <Filter>Raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Interface Raw Message.h">
+      <Filter>Raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Message State.h">
+      <Filter>Raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Interface Relay Receiver.h">
+      <Filter>Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Savvy Relay Receiver.h">
+      <Filter>Relay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Message Wrap JSON.h">
+      <Filter>Wrap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Meta\contributors.json">
@@ -23,6 +44,15 @@
     <Filter Include="Core">
       <UniqueIdentifier>{ee8256a8-4eda-42a0-825e-5d369a9bedf4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Relay">
+      <UniqueIdentifier>{ecbc47da-5364-4043-99ed-da1cf20fa3ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Raw">
+      <UniqueIdentifier>{0c04f866-8781-42a7-af02-9dce13e7a356}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrap">
+      <UniqueIdentifier>{eed49166-048d-4920-80d5-4fcfcfe64dbd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Meta\generate_meta.txt">
@@ -37,6 +67,15 @@
   <ItemGroup>
     <ClCompile Include="..\Pubc\Version.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Interface Relay Receiver.cpp">
+      <Filter>Relay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp">
+      <Filter>Relay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Message Wrap JSON.cpp">
+      <Filter>Wrap</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
