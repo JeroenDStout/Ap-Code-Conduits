@@ -19,6 +19,11 @@ namespace Conduits {
         using JSON   = BlackRoot::Format::JSON;
         using RMRDir = JSON::array_t;
 
+        using MessageHandleFunc = bool(Raw::IRelayMessage*);
+
+        template<typename C>
+        using ClassCallFunc = void (C::*)(Raw::IRelayMessage*);
+
     protected:
         inline virtual bool internal_rmr_try_call_immediate(const char * path, Raw::IRelayMessage * msg) {
             return rmr_handle_call_failure_immediate(path, msg);
@@ -26,11 +31,11 @@ namespace Conduits {
         inline virtual bool internal_rmr_try_relay_immediate(const char * path, Raw::IRelayMessage * msg) {
             return rmr_handle_relay_failure_immediate(path, msg);
         }
-        inline virtual bool internal_rmr_dir(RMRDir & dir) {
-            return internal_rmr_dir_relay(dir);
+        inline virtual void internal_rmr_dir(RMRDir & dir) {
+            dir;
         }
-        inline virtual bool internal_rmr_dir_relay(RMRDir & dir) {
-            return false;
+        inline virtual void internal_rmr_dir_relay(RMRDir & dir) {
+            dir;
         }
         inline virtual const char * internal_get_rmr_class_name() {
             return "IRelayMessageReceiver";
@@ -43,16 +48,17 @@ namespace Conduits {
         virtual ~IRelayMessageReceiver() = 0 { ; }
 
         bool rmr_handle_message_immediate(Raw::IRelayMessage *);
+        bool rmr_handle_message_immediate_and_release(Raw::IRelayMessage *);
     };
 
     namespace Helper {
         
         template<typename C>
         struct RelayReceiverFunctionMap {
-            typedef void (C::*MFP)(Raw::IRelayMessage *);
+            using CallFuncPtr = IRelayMessageReceiver::ClassCallFunc<C>;
 
                 // A map which links string to specific class function
-            std::map<std::string, MFP> Map;
+            std::map<std::string, CallFuncPtr> Map;
 
                 // Try to match a string to a function or return false
             inline bool try_call(C * c, const char * call, Raw::IRelayMessage * msg) {
@@ -69,9 +75,9 @@ namespace Conduits {
 
         template<typename C>
         struct RelayReceiverFunctionConnector {
-            typedef void (C::*MFP)(Raw::IRelayMessage *);
+            using CallFuncPtr = IRelayMessageReceiver::ClassCallFunc<C>;
 
-            RelayReceiverFunctionConnector(RelayReceiverFunctionMap<C> * map, char * name, MFP f) {
+            RelayReceiverFunctionConnector(RelayReceiverFunctionMap<C> * map, char * name, CallFuncPtr f) {
                 map->Map.insert( { name, f } );
             }
         };
@@ -93,18 +99,16 @@ namespace Conduits {
     \
     inline bool internal_rmr_try_call_immediate(const char * call, Conduits::Raw::IRelayMessage * msg) override { \
         if (_RelayReceiverProps##x.Function_Map.try_call(this, call, msg)) { \
-            msg->release(); \
             return true; \
         } \
         return this->RelayReceiverBaseClass::internal_rmr_try_call_immediate(call, msg); \
     } \
     \
-    inline bool internal_rmr_dir(RMRDir & dir) override { \
+    inline void internal_rmr_dir(RMRDir & dir) override { \
         this->RelayReceiverBaseClass::internal_rmr_dir(dir); \
         for (auto & func : _RelayReceiverProps##x.Function_Map.Map) { \
             dir.push_back(func.first); \
         } \
-        return true; \
     } \
     \
     inline virtual const char * internal_get_rmr_class_name() { \
@@ -119,3 +123,15 @@ namespace Conduits {
     
 #define CON_RMR_REGISTER_FUNC(x, func) \
     static Conduits::Helper::RelayReceiverFunctionConnector<x> RelayReceiverFunctionConnector##x##func(&(x::_RelayReceiverProps##x.Function_Map), #func, &x::_##func);
+
+#define CON_RMR_USE_DIRECT_RELAY(RelayMember) \
+    inline bool internal_rmr_try_relay_immediate(const char * path, Conduits::Raw::IRelayMessage * msg) override { \
+        if (this->RelayMember.try_relay_immediate(path, msg)) \
+            return true; \
+        return RelayReceiverBaseClass::internal_rmr_try_relay_immediate(path, msg); \
+    } \
+    \
+    inline void internal_rmr_dir_relay(RMRDir & dir) override { \
+        RelayReceiverBaseClass::internal_rmr_dir_relay(dir); \
+        this->RelayMember.dir_relay(dir); \
+    }

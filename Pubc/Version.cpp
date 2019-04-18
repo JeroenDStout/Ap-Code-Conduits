@@ -12,7 +12,6 @@ namespace Conduits {
 		
 		BR_VERSION_DEFINE(Conduits);
         BR_CONTRIBUTE_DEFINE(Conduits);
-        BR_PROJECT_DEFINE(Conduits);
 
 	}
 } 

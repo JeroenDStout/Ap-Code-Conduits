@@ -7,3 +7,7 @@
     // Static Dependencies
 
 #include "BlackRoot/Pubc/Register.h"
+
+    // Register version
+
+#include "Conduits/Pubc/Version.h"

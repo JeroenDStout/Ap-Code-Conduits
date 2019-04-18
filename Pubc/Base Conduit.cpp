@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "BlackRoot/Pubc/Stringstream.h"
-#include "BlackRoot/Pubc/Assert.h"
+#include "Conduits/Pubc/Base Conduit.h"
 
-#include "Conduits/Pubc/Message Wrap JSON.h"
+using namespace Conduits;

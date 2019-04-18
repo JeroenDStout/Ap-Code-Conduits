@@ -33,16 +33,17 @@ namespace Conduits {
             virtual ResponseDesire::Type  get_response_expectation() noexcept = 0;
 
             virtual const char *          get_path_string() const noexcept = 0;
-            virtual const SegmentData     get_message_segment(uint8 index) const noexcept = 0;
+            virtual const SegmentData     get_message_segment(SegIndex index) const noexcept = 0;
 
-            virtual bool                  set_response_string_with_copy(const char*) const noexcept = 0;
-            virtual bool                  set_response_segment_with_copy(uint8 index, const SegmentData) noexcept = 0;
+            virtual bool                  set_response_string_with_copy(const char*) noexcept = 0;
+            virtual bool                  set_response_segment_with_copy(SegIndex index, const SegmentData) noexcept = 0;
 
             virtual const char *          get_response_string() const noexcept = 0;
-            virtual const SegmentData     get_response_segment(uint8 index) noexcept = 0;
+            virtual const SegmentData     get_response_segment(SegIndex index) const noexcept = 0;
 
             virtual void                  set_OK() noexcept = 0;
             virtual void                  set_FAILED() noexcept = 0;
+            virtual void                  set_FAILED_connexion() noexcept = 0;
 
             virtual void                  release() noexcept = 0;
         };

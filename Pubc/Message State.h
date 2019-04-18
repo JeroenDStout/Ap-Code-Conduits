@@ -11,28 +11,19 @@ namespace Conduits {
     struct MessageState {
         typedef unsigned char Type;
         enum : Type {
-            OK      = 0x1 << 0,
-            Pending = 0x1 << 1,
-            Failed  = 0x1 << 2,
-            Aborted = 0x1 << 7
-        };
-    };
-    
-    struct ResponseState {
-        typedef unsigned char Type;
-        enum : Type {
-            OK        = 0x1 << 0,
-            NotNeeded = 0x1 << 1,
-            Pending   = 0x1 << 2,
-            Aborted   = 0x1 << 7
+            pending           = 0,
+            ok                = 1,
+            failed            = 2,
+            connexion_failure = 3,
+            aborted           = 4
         };
     };
     
     struct ResponseDesire {
         typedef unsigned char Type;
         enum : Type {
-            Needed    = 0x1 << 0,
-            NotNeeded = 0x1 << 1,
+            not_needed        = 0,
+            needed            = 1
         };
     };
 

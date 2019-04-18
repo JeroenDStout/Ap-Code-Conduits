@@ -4,18 +4,21 @@
 
 #pragma once
 
+#include "BlackRoot/Pubc/Number Types.h"
+
+#include "Conduits/Pubc/Message State.h"
+#include "Conduits/Pubc/Interface Raw Message.h"
+
 namespace Conduits {
+namespace Raw {
 
-    namespace Raw {
-
-        class IConduit {
-        public:
-        };
-
-    }
-
-    class IBaseConduit : public Raw::IConduit {
+    class INexus {
     public:
     };
 
+    class IConduit {
+    public:
+    };
+
+}
 }

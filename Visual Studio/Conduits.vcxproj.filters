@@ -7,12 +7,6 @@
     <ClInclude Include="..\Pubc\Register.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Pubc\Interface Conduit.h">
-      <Filter>Raw</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Pubc\Interface Messages.h">
-      <Filter>Raw</Filter>
-    </ClInclude>
     <ClInclude Include="..\Pubc\Interface Raw Message.h">
       <Filter>Raw</Filter>
     </ClInclude>
@@ -25,8 +19,32 @@
     <ClInclude Include="..\Pubc\Savvy Relay Receiver.h">
       <Filter>Relay</Filter>
     </ClInclude>
-    <ClInclude Include="..\Pubc\Message Wrap JSON.h">
-      <Filter>Wrap</Filter>
+    <ClInclude Include="..\Pubc\Interface Conduit.h">
+      <Filter>Conduit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Base Conduit.h">
+      <Filter>Conduit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Interface Nexus.h">
+      <Filter>Conduit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Base Nexus.h">
+      <Filter>Conduit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Base Message.h">
+      <Filter>Message</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Path Tools.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Await Message.h">
+      <Filter>Message</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Function Message.h">
+      <Filter>Message</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Simple Relay Dir.h">
+      <Filter>Relay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -50,8 +68,14 @@
     <Filter Include="Raw">
       <UniqueIdentifier>{0c04f866-8781-42a7-af02-9dce13e7a356}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Wrap">
+    <Filter Include="Conduit">
+      <UniqueIdentifier>{4eae6008-846e-4b84-9c97-ca86cf54f24b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Message">
       <UniqueIdentifier>{eed49166-048d-4920-80d5-4fcfcfe64dbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{4e37165a-9086-4ea8-9d1c-ef139bb9c636}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -74,8 +98,17 @@
     <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp">
       <Filter>Relay</Filter>
     </ClCompile>
-    <ClCompile Include="..\Pubc\Message Wrap JSON.cpp">
-      <Filter>Wrap</Filter>
+    <ClCompile Include="..\Pubc\Base Conduit.cpp">
+      <Filter>Conduit</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Base Nexus.cpp">
+      <Filter>Conduit</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Base Message.cpp">
+      <Filter>Message</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Pubc\Await Message.cpp">
+      <Filter>Message</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

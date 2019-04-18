@@ -34,13 +34,22 @@ bool IRelayMessageReceiver::rmr_handle_message_immediate(Raw::IRelayMessage * ms
     return this->internal_rmr_try_call_immediate(call, msg);
 }
 
+bool IRelayMessageReceiver::rmr_handle_message_immediate_and_release(Raw::IRelayMessage * msg)
+{
+    bool result = this->rmr_handle_message_immediate(msg);
+
+    msg->release();
+
+    return result;
+}
+
     //  Failure
     // --------------------
 
 bool IRelayMessageReceiver::rmr_handle_call_failure_immediate(const char * path, Raw::IRelayMessage * msg)
 {
-    std::string res = "Could not call '";
-    res.append(path).append(" on ").append(this->internal_get_rmr_class_name());
+    std::string res = "Could not call <";
+    res.append(path).append("> on <").append(this->internal_get_rmr_class_name()).append(">");
     msg->set_response_string_with_copy(res.c_str());
     msg->set_FAILED();
     return false;
@@ -48,8 +57,8 @@ bool IRelayMessageReceiver::rmr_handle_call_failure_immediate(const char * path,
 
 bool IRelayMessageReceiver::rmr_handle_relay_failure_immediate(const char * path, Raw::IRelayMessage * msg)
 {
-    std::string res = "Could not relay '";
-    res.append(path).append(" with ").append(this->internal_get_rmr_class_name());
+    std::string res = "Could not relay <";
+    res.append(path).append("> with ").append(this->internal_get_rmr_class_name()).append(">");
     msg->set_response_string_with_copy(res.c_str());
     msg->set_FAILED();
     return false;

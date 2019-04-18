@@ -134,18 +134,27 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Pubc\Message Wrap JSON.h" />
+    <ClInclude Include="..\Pubc\Await Message.h" />
+    <ClInclude Include="..\Pubc\Base Conduit.h" />
+    <ClInclude Include="..\Pubc\Base Message.h" />
+    <ClInclude Include="..\Pubc\Base Nexus.h" />
+    <ClInclude Include="..\Pubc\Function Message.h" />
+    <ClInclude Include="..\Pubc\Interface Nexus.h" />
+    <ClInclude Include="..\Pubc\Path Tools.h" />
     <ClInclude Include="..\Pubc\Savvy Relay Receiver.h" />
     <ClInclude Include="..\Pubc\Interface Conduit.h" />
-    <ClInclude Include="..\Pubc\Interface Messages.h" />
     <ClInclude Include="..\Pubc\Interface Raw Message.h" />
     <ClInclude Include="..\Pubc\Interface Relay Receiver.h" />
     <ClInclude Include="..\Pubc\Message State.h" />
+    <ClInclude Include="..\Pubc\Simple Relay Dir.h" />
     <ClInclude Include="..\Pubc\Version.h" />
     <ClInclude Include="..\Pubc\Register.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Pubc\Message Wrap JSON.cpp" />
+    <ClCompile Include="..\Pubc\Await Message.cpp" />
+    <ClCompile Include="..\Pubc\Base Conduit.cpp" />
+    <ClCompile Include="..\Pubc\Base Message.cpp" />
+    <ClCompile Include="..\Pubc\Base Nexus.cpp" />
     <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp" />
     <ClCompile Include="..\Pubc\Interface Relay Receiver.cpp" />
     <ClCompile Include="..\Pubc\Version.cpp" />
