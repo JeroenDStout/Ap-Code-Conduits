@@ -45,6 +45,30 @@ namespace Util {
                 return JSON({ "response-code", "HTTP/1.1 404 Not Found" });
             }
 
+            JSON httpRet = {};
+
+                // Handle common file extensions
+            const static std::map<std::string, std::string> mime = {
+                { ".js",   "application/javascript" },
+                { ".json", "application/json" },
+                { ".css",  "text/css" },
+                { ".html", "text/html" },
+                { ".htm",  "text/html" },
+                { ".xml",  "text/xml" },
+                { ".csv",  "text/csv" },
+                { ".txt",  "text/plain" },
+                { ".png",  "image/png" },
+                { ".jpg",  "image/jpeg" },
+                { ".jpeg", "image/jpeg" },
+                { ".gif",  "image/gif" },
+                { ".svg",  "image/svg+xml" }
+            };
+            auto ext = file_path.extension().string();
+            const auto & it = mime.find(ext);
+            if (it != mime.end()) {
+                httpRet["Content-Type"] = it->second;
+            }
+
                 // TODO: use a better function which allocates with us writing to it
             auto file = this->Inner_Source->ReadFile(file_path, 
                 BlackRoot::IO::IFileSource::OpenInstr{}
@@ -58,7 +82,9 @@ namespace Util {
             dat.Length = file.size();
             msg->set_response_segment_with_copy(1, dat);
 
-            return JSON{ "response-code", "HTTP/1.1 200 OK" };
+            httpRet["response-code"] = "HTTP/1.1 200 OK";
+
+            return httpRet;
         });
 
         return found;
