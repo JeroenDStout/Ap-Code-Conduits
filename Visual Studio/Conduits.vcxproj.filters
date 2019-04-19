@@ -46,6 +46,9 @@
     <ClInclude Include="..\Pubc\Simple Relay Dir.h">
       <Filter>Relay</Filter>
     </ClInclude>
+    <ClInclude Include="..\Pubc\File Server.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Meta\contributors.json">

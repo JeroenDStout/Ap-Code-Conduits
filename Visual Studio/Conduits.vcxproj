@@ -149,6 +149,7 @@
     <ClInclude Include="..\Pubc\Simple Relay Dir.h" />
     <ClInclude Include="..\Pubc\Version.h" />
     <ClInclude Include="..\Pubc\Register.h" />
+    <ClInclude Include="..\Pubc\File Server.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Pubc\Await Message.cpp" />
