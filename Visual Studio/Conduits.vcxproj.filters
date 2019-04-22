@@ -49,6 +49,12 @@
     <ClInclude Include="..\Pubc\File Server.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="..\Pub_ts\Websocket Protocol.ts">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Websocket Protocol.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Meta\contributors.json">
@@ -79,6 +85,9 @@
     </Filter>
     <Filter Include="Util">
       <UniqueIdentifier>{4e37165a-9086-4ea8-9d1c-ef139bb9c636}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Socket">
+      <UniqueIdentifier>{a5e9c8ae-bb77-4f26-80bb-d3c0fa69b7bb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

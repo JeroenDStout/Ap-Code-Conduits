@@ -141,6 +141,7 @@
     <ClInclude Include="..\Pubc\Function Message.h" />
     <ClInclude Include="..\Pubc\Interface Nexus.h" />
     <ClInclude Include="..\Pubc\Path Tools.h" />
+    <ClInclude Include="..\Pubc\Websocket Protocol.h" />
     <ClInclude Include="..\Pubc\Savvy Relay Receiver.h" />
     <ClInclude Include="..\Pubc\Interface Conduit.h" />
     <ClInclude Include="..\Pubc\Interface Raw Message.h" />
@@ -150,6 +151,7 @@
     <ClInclude Include="..\Pubc\Version.h" />
     <ClInclude Include="..\Pubc\Register.h" />
     <ClInclude Include="..\Pubc\File Server.h" />
+    <ClInclude Include="..\Pub_ts\Websocket Protocol.ts" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Pubc\Await Message.cpp" />
