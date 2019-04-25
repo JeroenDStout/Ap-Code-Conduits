@@ -106,7 +106,7 @@ export function try_parse_message(msg: Uint8Array): Message {
         read_point += 2;
         
                                                                 // St+2 String (x)
-        ret.String = decoder.decode(new Uint8Array(msg, read_point, read_point+str_length));
+        ret.String = decoder.decode(msg.slice(read_point, read_point + str_length));
         read_point += str_length;
     }
     else {
