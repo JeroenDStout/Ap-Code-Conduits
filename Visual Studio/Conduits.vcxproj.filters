@@ -49,10 +49,19 @@
     <ClInclude Include="..\Pubc\File Server.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="..\Pub_ts\Websocket Protocol.ts">
+    <ClInclude Include="..\Pubc\Disposable Message.h">
+      <Filter>Message</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Websocket Protocol Messages.h">
       <Filter>Socket</Filter>
     </ClInclude>
-    <ClInclude Include="..\Pubc\Websocket Protocol.h">
+    <ClInclude Include="..\Pubc\Websocket Protocol Shared.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pub_ts\Websocket Protocol What-ho.ts">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Websocket Protocol What-ho.h">
       <Filter>Socket</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,6 +71,12 @@
     </None>
     <None Include="..\Meta\libraries.json">
       <Filter>Meta</Filter>
+    </None>
+    <None Include="..\Pub_ts\Websocket Protocol Messages.ts">
+      <Filter>Socket</Filter>
+    </None>
+    <None Include="..\Pub_ts\Websocket Protocol Shared.ts">
+      <Filter>Socket</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

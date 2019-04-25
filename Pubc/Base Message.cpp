@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
+#include "BlackRoot/Pubc/Exception.h"
 
 #include "Conduits/Pubc/Base Message.h"
 #include "Conduits/Pubc/Path Tools.h"
@@ -18,6 +20,13 @@ IBaseMessage::IBaseMessage()
 
     //  Sender
     // --------------------
+
+void IBaseMessage::set_message_segments_from_list(const SegmentList & list)
+{
+    for (const auto & elem : list) {
+        this->Message_Segments[elem.first].assign((char*)elem.second.Data, elem.second.Length);
+    }
+}
 
 void IBaseMessage::sender_prepare_for_send()
 {

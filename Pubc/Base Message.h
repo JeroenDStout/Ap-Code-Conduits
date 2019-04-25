@@ -15,12 +15,13 @@ namespace Conduits {
 
     class IBaseMessage : public Raw::IRelayMessage {
     protected:
-        using SegIndex    = Raw::SegIndex;
-        using SegmentData = std::string;
-        using SegmentMap  = std::map<SegIndex, SegmentData>;
-        using ResDes      = ResponseDesire::Type;
-        using State       = MessageState::Type;
-        using SegmentRef  = Raw::SegmentData;
+        using SegIndex        = Raw::SegIndex;
+        using SegmentData     = std::string;
+        using SegmentMap      = std::map<SegIndex, SegmentData>;
+        using SegmentList     = std::vector<std::pair<SegIndex, Raw::SegmentData>>;
+        using ResDes          = ResponseDesire::Type;
+        using State           = MessageState::Type;
+        using SegmentRef      = Raw::SegmentData;
 
     public:
         std::string  Path;
@@ -36,6 +37,8 @@ namespace Conduits {
 
         IBaseMessage();
         virtual ~IBaseMessage() { ; }
+
+        virtual void     set_message_segments_from_list(const SegmentList &);
 
         void             sender_prepare_for_send();
 
