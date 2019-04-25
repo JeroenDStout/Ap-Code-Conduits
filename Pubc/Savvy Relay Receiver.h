@@ -72,7 +72,7 @@ namespace Conduits {
 
                 Conduits::Raw::SegmentData data;
                 data.Data = (void*)dump.c_str();
-                data.Length = dump.length() + 1;
+                data.Length = dump.length();
 
                 msg->set_response_segment_with_copy(i, data);
             });
@@ -102,7 +102,7 @@ namespace Conduits {
 
                 Conduits::Raw::SegmentData data;
                 data.Data = (void*)dump.c_str();
-                data.Length = dump.length() + 1;
+                data.Length = dump.length();
 
                 msg->set_response_segment_with_copy(write_i, data);
             });
