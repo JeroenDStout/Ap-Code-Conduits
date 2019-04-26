@@ -26,21 +26,20 @@ bool IRelayMessageReceiver::rmr_handle_message_immediate(Raw::IRelayMessage * ms
             // the message is now wholly the responsibility of the
             // relay function
         msg->move_adapting_path_start(relayLength + 1);
-        return this->internal_rmr_try_relay_immediate(relayName.c_str(), msg);
+        return !this->internal_rmr_try_relay_immediate(relayName.c_str(), msg);
     }
 
         // The remainder of the path is our call; get it and try to call
     const auto * call = msg->get_adapting_path();
-    return this->internal_rmr_try_call_immediate(call, msg);
+    this->internal_rmr_try_call_immediate(call, msg);
+    return true;
 }
 
-bool IRelayMessageReceiver::rmr_handle_message_immediate_and_release(Raw::IRelayMessage * msg)
+void IRelayMessageReceiver::rmr_handle_message_immediate_and_release(Raw::IRelayMessage * msg)
 {
-    bool result = this->rmr_handle_message_immediate(msg);
-
-    msg->release();
-
-    return result;
+    if (this->rmr_handle_message_immediate(msg)) {
+        msg->release();
+    }
 }
 
     //  Failure

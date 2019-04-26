@@ -19,7 +19,7 @@ namespace Conduits {
         using JSON   = BlackRoot::Format::JSON;
         using RMRDir = JSON::array_t;
 
-        using MessageHandleFunc = bool(Raw::IRelayMessage*);
+        using MessageHandleFunc = void(Raw::IRelayMessage*);
 
         template<typename C>
         using ClassCallFunc = void (C::*)(Raw::IRelayMessage*);
@@ -48,7 +48,7 @@ namespace Conduits {
         virtual ~IRelayMessageReceiver() = 0 { ; }
 
         bool rmr_handle_message_immediate(Raw::IRelayMessage *);
-        bool rmr_handle_message_immediate_and_release(Raw::IRelayMessage *);
+        void rmr_handle_message_immediate_and_release(Raw::IRelayMessage *);
     };
 
     namespace Helper {
