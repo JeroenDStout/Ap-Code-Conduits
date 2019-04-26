@@ -22,6 +22,9 @@ namespace Conduits {
             void      *Data;
         };
 
+        class IOpenConduitHandler;
+        class INexus;
+
         class IRelayMessage {
         protected:
             const char * Adapting_Path;
@@ -41,7 +44,10 @@ namespace Conduits {
             virtual const char *          get_response_string() const noexcept = 0;
             virtual const SegmentData     get_response_segment(SegIndex index) const noexcept = 0;
 
+            virtual void                  open_conduit_for_sender(INexus*, IOpenConduitHandler*) = 0;
+
             virtual void                  set_OK() noexcept = 0;
+            virtual void                  set_OK_opened_conduit() noexcept = 0;
             virtual void                  set_FAILED() noexcept = 0;
             virtual void                  set_FAILED_connexion() noexcept = 0;
 

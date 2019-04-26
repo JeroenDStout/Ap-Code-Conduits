@@ -4,18 +4,19 @@
 
 #pragma once
 
+#include "Conduits/Pubc/Interface Nexus.h"
+
 namespace Conduits {
+namespace Raw {
 
-    namespace Raw {
-
-        class IConduit {
-        public:
+    class IOpenConduitHandler {
+    public:
+        struct ResultData {
         };
 
-    }
-
-    class IBaseConduit : public Raw::IConduit {
-    public:
+        virtual void handle_success(ResultData*, ConduitRef) noexcept = 0;
+        virtual void handle_failure(ResultData*) noexcept = 0;
     };
 
+}
 }
