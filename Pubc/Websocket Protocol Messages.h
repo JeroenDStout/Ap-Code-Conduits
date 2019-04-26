@@ -18,15 +18,23 @@ namespace Protocol {
     struct StateFlags {
         using Type = uint8;
         
-        static const Type   Has_String          = 0x1;
-        static const Type   Has_Segments        = 0x2;
-        static const Type   Is_Response         = 0x4;
+        static const Type   Has_String           = 0x01;
+        static const Type   Has_Segments         = 0x02;
+        static const Type   Is_Response          = 0x04;
 
             // if response...
-        static const Type   Has_Succeeded       = 0x8;
+        static const Type   Has_Succeeded        = 0x08;
+
+            // if response succeeded...
+        static const Type   Confirm_Open_Conduit = 0x10;
+
+            // if response not succeeded
+        static const Type   Connexion_Failure    = 0x10;
 
             // if not response...
-        static const Type   Requires_Response   = 0x8;
+        static const Type   Requires_Response    = 0x08;
+        static const Type   Ping_Conduit         = 0x10;
+        static const Type   Close_Conduit        = 0x20;
     };
 
         // ------ Message
@@ -58,14 +66,24 @@ namespace Protocol {
             if (b) { this->Flags |= StateFlags::Has_Succeeded; }
             else { this->Flags &= ~StateFlags::Has_Succeeded; }
         }
+        void set_confirm_open_conduit(bool b) {
+            if (b) { this->Flags |= StateFlags::Confirm_Open_Conduit; }
+            else { this->Flags &= ~StateFlags::Confirm_Open_Conduit; }
+        }
         void set_requires_response(bool b) {
             if (b) { this->Flags |= StateFlags::Requires_Response; }
             else { this->Flags &= ~StateFlags::Requires_Response; }
         }
+        void set_connexion_failure(bool b) {
+            if (b) { this->Flags |= StateFlags::Connexion_Failure; }
+            else { this->Flags &= ~StateFlags::Connexion_Failure; }
+        }
 
-        bool get_is_resonse()        { return 0 != (this->Flags & StateFlags::Is_Response); }
-        bool get_has_succeeded()     { return 0 != (this->Flags & StateFlags::Has_Succeeded); }
-        bool get_requires_response() { return 0 != (this->Flags & StateFlags::Requires_Response); }
+        bool get_is_resonse()           { return 0 != (this->Flags & StateFlags::Is_Response); }
+        bool get_has_succeeded()        { return 0 != (this->Flags & StateFlags::Has_Succeeded); }
+        bool get_confirm_open_conduit() { return 0 != (this->Flags & StateFlags::Confirm_Open_Conduit); }
+        bool get_requires_response()    { return 0 != (this->Flags & StateFlags::Requires_Response); }
+        bool get_connexion_failure()    { return 0 != (this->Flags & StateFlags::Connexion_Failure); }
         
         static MessageScratch try_parse_message(void * msg, size_t length);
         static std::string    try_stringify_message(const MessageScratch &);

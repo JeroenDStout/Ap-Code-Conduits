@@ -3,15 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 class MessageStateFlags {
-    static Has_String        = 0x1;
-    static Has_Segments      = 0x2;
-    static Is_Response       = 0x4;
+    static Has_String           = 0x01;
+    static Has_Segments         = 0x02;
+    static Is_Response          = 0x04;
     
-            // if response...
-    static Has_Succeeded     = 0x8;
+        // if response
+    static Has_Succeeded        = 0x08;
     
-            // if not response...
-    static Requires_Response = 0x8
+        // if response succeeded
+    static Confirm_Open_Conduit = 0x10;
+
+        // if response failed
+    static Connexion_Failure    = 0x10;
+
+        // if not response
+    static Requires_Response    = 0x08
+    static Ping_Conduit         = 0x10;
 }
 
 export class Message {
@@ -34,10 +41,16 @@ export class Message {
         if (b) { this.Flags |= MessageStateFlags.Requires_Response; }
         else { this.Flags &= ~MessageStateFlags.Requires_Response; }
     }
+    set_connexion_error(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Connexion_Failure; }
+        else { this.Flags &= ~MessageStateFlags.Connexion_Failure; }
+    }
 
-    get_is_response(): boolean       { return 0 != (this.Flags & MessageStateFlags.Is_Response); }
-    get_has_succeeded(): boolean     { return 0 != (this.Flags & MessageStateFlags.Has_Succeeded); }
-    get_requires_response(): boolean { return 0 != (this.Flags & MessageStateFlags.Requires_Response); }
+    get_is_response(): boolean             { return 0 != (this.Flags & MessageStateFlags.Is_Response); }
+    get_has_succeeded(): boolean           { return 0 != (this.Flags & MessageStateFlags.Has_Succeeded); }
+    get_requires_response(): boolean       { return 0 != (this.Flags & MessageStateFlags.Requires_Response); }
+    get_confirm_open_conduit(): boolean    { return 0 != (this.Flags & MessageStateFlags.Confirm_Open_Conduit); }
+    get_has_connecion_failure(): boolean   { return 0 != (this.Flags & MessageStateFlags.Connexion_Failure); }
 
     set_segment_from_json(index: number, json: any) {
         this.Segments.set(index, (new TextEncoder()).encode(JSON.stringify(json)));
