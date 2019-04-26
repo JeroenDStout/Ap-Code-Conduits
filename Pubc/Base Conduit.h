@@ -7,18 +7,39 @@
 #include "BlackRoot/Pubc/Number Types.h"
 
 #include "Conduits/Pubc/Message State.h"
-#include "Conduits/Pubc/Interface Raw Message.h"
+#include "Conduits/Pubc/Interface Conduit.h"
 
 namespace Conduits {
-namespace Raw {
 
-    class INexus {
+    class FunctionOpenConduitHandler : public Raw::IOpenConduitHandler {
     public:
+        struct Result {
+            bool             Is_Success;
+            Raw::ConduitRef  Ref;
+        };
+
+        using CallbackFunc = std::function<void(Result)>;
+
+    protected:
+        CallbackFunc    Callback;
+
+    public:
+        FunctionOpenConduitHandler(CallbackFunc f)
+        : Callback(f) { ; }
+
+        void handle_success(Raw::IOpenConduitHandler::ResultData*, Raw::ConduitRef ref) noexcept override {
+            Result r;
+            r.Is_Success = true;
+            r.Ref = ref;
+            Callback(r);
+        }
+
+        void handle_failure(Raw::IOpenConduitHandler::ResultData*) noexcept override {
+            Result r;
+            r.Is_Success = false;
+            r.Ref = Raw::ConduitRefNone;
+            Callback(r);
+        }
     };
 
-    class IConduit {
-    public:
-    };
-
-}
 }
