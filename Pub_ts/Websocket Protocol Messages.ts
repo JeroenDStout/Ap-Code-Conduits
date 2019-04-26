@@ -144,8 +144,7 @@ export function try_parse_message(msg: Uint8Array): Message {
             read_point += seg_length;
         }
     }
-
-    console.log(ret);
+    
     return ret;
 }
 
@@ -233,6 +232,5 @@ export function try_stringify_message(msg: Message): Uint8Array {
         });
     }
     
-    console.log(out_data);
     return out_data;
 }
