@@ -13,9 +13,10 @@ namespace Conduits {
         enum : Type {
             pending           = 0,
             ok                = 1,
-            failed            = 2,
-            connexion_failure = 3,
-            aborted           = 4
+            ok_opened_conduit = 2,
+            failed            = 3,
+            connexion_failure = 4,
+            aborted           = 5
         };
     };
     
