@@ -5,6 +5,7 @@
 #include "BlackRoot/Pubc/Exception.h"
 
 #include "Conduits/Pubc/Base Message.h"
+#include "Conduits/Pubc/Base Conduit.h"
 #include "Conduits/Pubc/Path Tools.h"
 
 using namespace Conduits;
@@ -14,6 +15,7 @@ using namespace Conduits;
 
 IBaseMessage::IBaseMessage()
 {
+    this->Open_Conduit_Func = nullptr;
     this->Message_State     = Conduits::MessageState::pending;
     this->Response_Desire   = Conduits::ResponseDesire::not_needed;
 }
@@ -33,6 +35,25 @@ void IBaseMessage::sender_prepare_for_send()
         // Santise path and expose to c-like variable
     this->Path = Util::Sanitise_Path(this->Path);
     this->Adapting_Path = this->Path.c_str();
+}
+
+    //  Conduits
+    // --------------------
+
+void IBaseMessage::open_conduit_for_sender(Raw::INexus *nexus, Raw::IOpenConduitHandler *handler) noexcept
+{
+    if (!this->Open_Conduit_Func) {
+        Raw::IOpenConduitHandler::ResultData data;
+        handler->handle_failure(&data);
+        return;
+    }
+
+    (*this->Open_Conduit_Func)(nexus, this, handler);
+}
+
+void IBaseMessage::set_open_conduit_function(OpenConduitFunc * func)
+{
+    this->Open_Conduit_Func = func;
 }
 
     //  Receiver
@@ -87,6 +108,11 @@ const IBaseMessage::SegmentRef IBaseMessage::get_response_segment(SegIndex index
 void IBaseMessage::set_OK() noexcept
 {
     this->Message_State = Conduits::MessageState::ok;
+}
+
+void IBaseMessage::set_OK_opened_conduit() noexcept
+{
+    this->Message_State = Conduits::MessageState::ok_opened_conduit;
 }
 
 void IBaseMessage::set_FAILED() noexcept
