@@ -181,6 +181,7 @@ export function try_stringify_message(msg: Message): Uint8Array {
             // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
             
     if (msg.Segments.size > 0) {
+        req_size += 1;
         msg.Segments.forEach((value, index) => {
             req_size += 5 + value.byteLength;
         });
@@ -210,7 +211,6 @@ export function try_stringify_message(msg: Message): Uint8Array {
             out_data[write_point] = msg_string[read];
             write_point += 1;
         }
-        write_point += msg_string.byteLength;
     }
             // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
 
@@ -223,7 +223,7 @@ export function try_stringify_message(msg: Message): Uint8Array {
             write_point += 1;
 
             to_uint32(value.byteLength, out_data, write_point);   // Sg+(5*n+Σx_n)+1 Size (4)
-            write_point += 1;
+            write_point += 4;
         
             for (let read = 0; read < value.byteLength; read++) { // Sg+(5*n+Σx_n)+5 Data (x_n)
                 out_data[write_point] = value[read];
