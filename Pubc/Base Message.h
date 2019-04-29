@@ -52,6 +52,7 @@ namespace Conduits {
 
         const char *     get_path_string() const noexcept override;
         const SegmentRef get_message_segment(SegIndex index) const noexcept override;
+        uint8            get_message_segment_indices(uint8 * out_segments, size_t max_segments) const noexcept override;
 
         bool             set_response_string_with_copy(const char*) noexcept override;
         bool             set_response_segment_with_copy(SegIndex index, const SegmentRef) noexcept override;

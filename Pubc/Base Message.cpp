@@ -105,6 +105,19 @@ const IBaseMessage::SegmentRef IBaseMessage::get_response_segment(SegIndex index
     return { seg->second.size(), (void*)seg->second.c_str() };
 }
 
+uint8 IBaseMessage::get_message_segment_indices(uint8 * indices, size_t max) const noexcept
+{
+    size_t count = 0;
+
+    for (const auto & seg : this->Message_Segments) {
+        if (count >= max)
+            return uint8(count);
+        indices[count++] = seg.first;
+    }
+
+    return uint8(count);
+}
+
 void IBaseMessage::set_OK() noexcept
 {
     this->Message_State = Conduits::MessageState::ok;

@@ -37,6 +37,7 @@ namespace Conduits {
 
             virtual const char *          get_path_string() const noexcept = 0;
             virtual const SegmentData     get_message_segment(SegIndex index) const noexcept = 0;
+            virtual uint8                 get_message_segment_indices(uint8 * out_segments, size_t max_segments) const noexcept = 0;
 
             virtual bool                  set_response_string_with_copy(const char*) noexcept = 0;
             virtual bool                  set_response_segment_with_copy(SegIndex index, const SegmentData) noexcept = 0;
