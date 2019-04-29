@@ -29,7 +29,9 @@ namespace Conduits {
 
     inline void BaseFunctionMessage::release() noexcept
     {
-        this->Callback(this);
+        if (nullptr != Callback) {
+            this->Callback(this);
+        }
     }
 
 }
