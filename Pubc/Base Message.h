@@ -68,7 +68,7 @@ namespace Conduits {
         
         RespDesire get_response_expectation() noexcept override;
         
-        const SegmentData get_message_segment(char*) const noexcept override;
+        const SegmentData get_message_segment(const char*) const noexcept override;
 
         size_t get_message_segment_count() const noexcept override;
         size_t get_message_segment_list(SegmentData * out_segments, size_t max_segments) const noexcept override;
@@ -76,7 +76,7 @@ namespace Conduits {
         void set_OK(OKState) noexcept override;
         void set_FAILED(FailState) noexcept override;
 
-        void add_response(IMessage *) noexcept override;
+        void set_response(IMessage *) noexcept override;
     };
 
 }

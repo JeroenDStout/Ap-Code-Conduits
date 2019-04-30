@@ -42,18 +42,22 @@ IBaseMessage::RespDesire IBaseMessage::get_response_expectation() noexcept
     return this->Response_Desire;
 }
 
-const IBaseMessage::SegmentData IBaseMessage::get_message_segment(char * name) const noexcept
+const IBaseMessage::SegmentData IBaseMessage::get_message_segment(const char * name) const noexcept
 {
+        // Ensure name is not a nullptr
+    name = name ? name : "";
+    
+        // Find the segment and return its info, if existing
+    SegmentData data;
+
     const auto & seg = this->Segment_Map.find(name);
     if (seg == this->Segment_Map.end()) {
-        SegmentData data;
         data.Name   = nullptr;
         data.Data   = nullptr;
         data.Length = 0;
         return data;
     }
 
-    SegmentData data;
     data.Name   = seg->first.c_str();
     data.Data   = (void*)seg->second.c_str();
     data.Length = seg->second.size();
@@ -93,7 +97,7 @@ void IBaseMessage::set_FAILED(FailState state) noexcept
     this->State_Fail = state;
 }
 
-void IBaseMessage::add_response(IMessage * msg) noexcept
+void IBaseMessage::set_response(IMessage * msg) noexcept
 {
     if (this->Response_Desire != Raw::ResponseDesire::required) {
         msg->set_FAILED(Raw::FailState::failed_no_response_expected);
