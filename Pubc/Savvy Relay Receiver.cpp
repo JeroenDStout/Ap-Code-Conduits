@@ -32,7 +32,7 @@ void SavvyRelayMessageReceiver::savvy_handle_http(const JSON http_request, JSON 
     body.append("</html>");
 }
 
-void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IRelayMessage * msg, const JSON http_request, JSON & http_reply, std::string & body)
+void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IMessage * msg, const JSON http_request, JSON & http_reply, std::string & body)
 {
     const auto & class_name = this->internal_get_rmr_class_name();
 
@@ -48,24 +48,20 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IR
         // we just call it, then report on the results
     this->internal_rmr_try_call_immediate(call.c_str(), msg);
 
-	body.append("  <p><b>").append(msg->get_response_string()).append("</b></p>\n");
+	body.append("  <p><b>").append(msg->get_message_string()).append("</b></p>\n");
 
         // Do a raw output
-        // TODO: prettify this?
-    for (int i = 0; i < 5; i++) {
-        const auto message_seg = msg->get_response_segment(i);
-        if (message_seg.Length == 0)
-            continue;
+    size_t segment_count = msg->get_message_segment_count();
+    if (segment_count > 0) {
+        std::vector<Conduits::Raw::SegmentData> segments;
+        segments.resize(segment_count);
+        msg->get_message_segment_list(&segments.front(), segment_count);
 
-        std::string data;
-        data.assign((char*)message_seg.Data, message_seg.Length);
-        size_t pos = 0;
-        while ((pos = data.find("\\n", pos)) != data.npos) {
-            data.replace(pos, 2, "<br/>");
+            // Output every segment as a string
+        for (auto & elem : segments) {
+	        body.append("  <p><b>Segment '").append(elem.Name).append("'</b><br/>\n   ");
+            body.append((char*)elem.Data, elem.Length).append("</p>\n");
         }
-
-            // For now, just data raw
-	    body.append("  <p><b>Data</b><br/>").append(data).append(" (Base Relay)</p>\n");
     }
 
 	body.append("  <h1>Relay</h1>\n");
@@ -117,7 +113,7 @@ std::string SavvyRelayMessageReceiver::html_create_action_relay_string()
 
 void SavvyRelayMessageReceiver::_dir(RawRelayMessage * msg) noexcept
 {
-    savvy_try_wrap_write_json(msg, 0, [&]{
+    savvy_try_wrap(msg, [&]{
         RMRDir relay;
         this->internal_rmr_dir_relay(relay);
 
@@ -132,22 +128,24 @@ void SavvyRelayMessageReceiver::_dir(RawRelayMessage * msg) noexcept
         if (dir.size() > 0) {
             response["dir"] = dir;
         }
+        
+        auto * reply = new Conduits::DisposableMessage();
+        reply->Segment_Map[""] = response.dump();
 
         msg->set_OK();
-
-        return response;
     });
-
 }
 
 void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
 {
-    savvy_try_wrap_read_write_json(msg, 0, 0, [&](JSON http_request) {
+    savvy_try_wrap_read_json(msg, "", [&](JSON http_request) {
         JSON http_reponse;
         std::string message_body;
 
         bool handledHtml = false;
    
+        std::unique_ptr<DisposableMessage> reply(new Conduits::DisposableMessage());
+
             // If we have a http_request, it may contain the queries;
             // if it does, the 'call' variable is used to call functions
             // via http (which is not great but can be of use)
@@ -169,7 +167,8 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
             }
         }
         catch (...) {
-            msg->set_response_string_with_copy("malformed query");
+            reply->Message_String = "Malformed query";
+            msg->add_response(reply.release());
             msg->set_FAILED();
             return JSON(0);
         }
@@ -179,25 +178,15 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
             this->savvy_handle_http(http_request, http_reponse, message_body);
         }
     
-            // http_response means we have to pass headers back;
-            // we stringify the json and put it in segment 0
+            // http_response means we may have to pass headers back;
+            // we stringify the json and put it in segment 'http'
+            // while the body evidently goes in segment 'body'
         if (!http_reponse.is_null()) {
-            auto http_response_str = http_reponse.dump();
-
-            Raw::SegmentData response_seg_http;
-            response_seg_http.Data   = (void*)http_response_str.c_str();
-            response_seg_http.Length = http_response_str.length();
-            msg->set_response_segment_with_copy(0, response_seg_http);
+            reply->Segment_Map["http"] = http_reponse.dump();
         }
-    
-            // The message body part is copied to segment 1
-        Raw::SegmentData response_seg_body;
-        response_seg_body.Data   = (void*)message_body.c_str();
-        response_seg_body.Length = message_body.length();
-        msg->set_response_segment_with_copy(1, response_seg_body);
+        reply->Segment_Map["body"] = std::move(message_body);
 
+        msg->add_response(reply.release());
         msg->set_OK();
-
-        return http_reponse;
     });
 }
