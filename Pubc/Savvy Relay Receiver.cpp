@@ -168,7 +168,7 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
         }
         catch (...) {
             reply->Message_String = "Malformed query";
-            msg->add_response(reply.release());
+            msg->set_response(reply.release());
             msg->set_FAILED();
             return JSON(0);
         }
@@ -186,7 +186,7 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
         }
         reply->Segment_Map["body"] = std::move(message_body);
 
-        msg->add_response(reply.release());
+        msg->set_response(reply.release());
         msg->set_OK();
     });
 }

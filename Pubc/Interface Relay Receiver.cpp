@@ -55,7 +55,7 @@ bool IRelayMessageReceiver::rmr_handle_call_failure_immediate(const char * path,
         auto * reply = new Conduits::DisposableMessage();
         reply->Message_String = "Could not call <";
         reply->Message_String.append(path).append("> on <").append(this->internal_get_rmr_class_name()).append(">");
-        msg->add_response(reply);
+        msg->set_response(reply);
     }
 
     return false;
@@ -69,7 +69,7 @@ bool IRelayMessageReceiver::rmr_handle_relay_failure_immediate(const char * path
         auto * reply = new Conduits::DisposableMessage();
         reply->Message_String = "Could not relay <";
         reply->Message_String.append(path).append("> with <").append(this->internal_get_rmr_class_name()).append(">");
-        msg->add_response(reply);
+        msg->set_response(reply);
     }
 
     return false;
