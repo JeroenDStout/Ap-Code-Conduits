@@ -5,6 +5,8 @@
 #include "BlackRoot/Pubc/Assert.h"
 
 #include "Conduits/Pubc/Base Nexus.h"
+#include "Conduits/Pubc/Disposable Message.h"
+#include "Conduits/Pubc/Base Nexus Message.h"
 
 using namespace Conduits;
 
@@ -13,10 +15,16 @@ using namespace Conduits;
 
 BaseNexus::BaseNexus()
 {
-    this->Threads_Should_Return;
+    this->Is_Available_For_Incoming   = false;
+    this->Threads_Should_Keep_Waiting = false;
 
-    this->set_ad_hoc_message_handling([](Raw::ConduitRef, Raw::IRelayMessage * msg){
-        msg->set_response_string_with_copy("This nexus does not accept ad hoc messages.");
+    this->set_ad_hoc_message_handling([](Raw::IMessage * msg){
+        if (Raw::ResponseDesire::response_is_possible(msg->get_response_expectation())) {
+            auto * reply = new Conduits::DisposableMessage();
+            reply->Message_String = "This nexus does not listen to ad hoc messages";
+            msg->set_response(reply);
+        }
+        
         msg->set_FAILED();
         msg->release();
     });
@@ -31,6 +39,15 @@ void BaseNexus::destroy() noexcept
     delete this;
 }
 
+    //  Lifetime
+    // --------------------
+
+void BaseNexus::make_orphan()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Is_Orphan = true;
+}
+
 void BaseNexus::internal_sync_handle_being_orphan()
 {
 }
@@ -38,98 +55,195 @@ void BaseNexus::internal_sync_handle_being_orphan()
     //  Settings
     // --------------------
 
-void BaseNexus::set_ad_hoc_message_handling(MessageFunc func)
+void BaseNexus::set_ad_hoc_message_handling(AdHocMsgFunc func)
 {
-    std::unique_lock<std::mutex> lk(this->Mx_Access);
     this->Ad_Hoc_Handler = func;
 }
 
-    //  Piping
+    //  Threads
     // --------------------
-
-void BaseNexus::start_accepting_threads()
-{
-    this->Threads_Should_Return = false;
-}
-
-void BaseNexus::stop_accepting_threads_and_return()
-{
-    std::unique_lock<std::mutex> lk(this->Mx_Access);
-    this->Threads_Should_Return = true;
-    lk.unlock();
-
-    this->Cv_Queue_And_Events.notify_all();
-}
-
-void BaseNexus::internal_push_message(MessageObject obj)
-{
-    std::unique_lock<std::mutex> lk(this->Mx_Access);
-    this->Message_Queue.push(obj);
-    lk.unlock();
-
-    this->Cv_Queue_And_Events.notify_one();
-}
 
 void BaseNexus::await_message_and_handle()
 {
     std::unique_lock<std::mutex> lk(this->Mx_Access);
 
-    if (this->Threads_Should_Return)
+        // If we should not attend to the queue
+        // let the caller deal with this thread
+    if (!this->Threads_Should_Keep_Waiting)
         return;
 
-    if (this->Message_Queue.size() == 0) {
+        // If our queue is empty simply wait for
+        // a new addition or a return command
+    if (this->Primary_Queue.size() == 0) {
         this->Cv_Queue_And_Events.wait(lk, [&]{
-            return this->Message_Queue.size() > 0 || this->Threads_Should_Return;
+            return this->Primary_Queue.size() > 0 || this->Threads_Should_Return;
         });
     }
 
-    if (this->Message_Queue.size() == 0)
+        // During our lock the end signal may have
+        // changed; so check again
+    if (!this->Threads_Should_Keep_Waiting)
         return;
 
-    auto message = std::move(this->Message_Queue.front());
-    this->Message_Queue.pop();
-
-    if (message.Ref == Raw::ConduitRefNone) {
-        lk.unlock();
-        this->Ad_Hoc_Handler(message.Ref, message.Message);
+        // If there was no new message we were
+        // either accidentally woken up, or we
+        // intentionally should return; either way
+        // we let our caller have the thread back
+    if (this->Primary_Queue.size() == 0)
         return;
-    }
 
-    auto & it = this->Message_Map.find(message.Ref);
-    if (it == this->Message_Map.end()) {
-        lk.unlock();
+    auto object = std::move(this->Primary_Queue.front());
+    this->Primary_Queue.pop();
+
+    switch (object.Type) {
+        default:
+            DbAssertMsgFatal(0, "Illegal object type in primary queue");
+
+            // Simply forward an ad hoc message to the handler
+        case QueueObjectType::ad_hoc_message: {
+            lk.unlock();
+            this->Ad_Hoc_Handler(object.Message);
+
+            return;
+        }
         
-        message.Message->set_response_string_with_copy("This nexus does not accept messages with this conduit reference.");
-        message.Message->set_FAILED_connexion();
-        message.Message->release();
-        return;
+            // Try to find the message delivery call
+            // corresponding to the circuit id
+        case QueueObjectType::conduit_message: {
+            auto & it = this->Message_Map.find(object.Received_On_Conduit);
+            if (it == this->Message_Map.end()) {
+                lk.unlock();
+
+                object.Message->set_FAILED(Raw::FailState::failed_no_connexion);
+                object.Message->release();
+                return;
+            }
+
+            auto call = *it;
+            lk.unlock();
+
+            call.second(object.Received_On_Conduit, object.Message);
+
+            return;
+        }
+        
+            // Try to find the update delivery call
+            // corresponding to the circuit id
+        case QueueObjectType::conduit_update: {
+            auto & it = this->Info_Map.find(object.Received_On_Conduit);
+            if (it == this->Info_Map.end()) {
+                lk.unlock();
+
+                object.Message->set_FAILED(Raw::FailState::failed_no_connexion);
+                object.Message->release();
+                return;
+            }
+
+            auto call = *it;
+            lk.unlock();
+
+            call.second(object.Received_On_Conduit, *object.Conduit_Update_Info);
+
+            return;
+        }
+        
+            // Use this thread to handle the callback
+            // for the message & delete it
+        case QueueObjectType::message_reply: {
+            lk.unlock();
+
+            auto msg = (BaseNexusMessage*)object.Message;
+            msg->call_for_nexus();
+            msg->destroy_for_nexus();
+
+            return;
+        }
     }
-
-    auto call = *it;
-    lk.unlock();
-
-    call.second(message.Ref, message.Message);
 }
 
-    //  Connexions
+    //  Control
     // --------------------
 
+void BaseNexus::start_accepting_messages()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Is_Available_For_Incoming = true;
+}
+
+void BaseNexus::stop_accepting_messages()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Is_Available_For_Incoming = false;
+}
+
+void BaseNexus::handle_and_fail_remaining_messages()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+
+        // We simply loop through all queue events and
+        // fail them all; this means message replies
+        // will not be received at all
+    while (this->Primary_Queue.size() > 0) {
+        auto object = std::move(this->Primary_Queue.front());
+        this->Primary_Queue.pop();
+
+        this->internal_sync_dismiss_unaccepted_object(object);
+    }
+}
+
+void BaseNexus::start_accepting_threads()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Threads_Should_Keep_Waiting = true;
+}
+
+void BaseNexus::stop_accepting_threads_and_return()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Threads_Should_Keep_Waiting = false;
+    lk.unlock();
+
+    this->Cv_Queue_And_Events.notify_all();
+}
+
+void BaseNexus::stop_gracefully()
+{
+    DbAssert(!this->Threads_Should_Keep_Waiting);
+    
+    this->stop_accepting_messages();
+    this->close_all_conduits();
+    this->handle_and_fail_remaining_messages();
+}
+
+    //  Conduits for users of class
+    // --------------------
+    
 BaseNexus::ConduitRefPair BaseNexus::manual_open_conduit_to(INexus * nexus, InfoFunc info, MessageFunc message)
 {
+        // Get id for calling us on the new conduit
     auto new_id = this->internal_get_free_conduit_id();
+
+        // Get id for calling the other nexus on the conduit;
+        // this handles opening the conduit on the other end
     auto ret_id = nexus->reciprocate_opened_conduit(this, new_id);
 
+        // Update our maps
     std::unique_lock<std::mutex> lk(this->Mx_Access);
 
     this->Info_Map[new_id]    = info;    
     this->Message_Map[new_id] = message;
     this->Send_Map[new_id]    = { nexus, ret_id };
 
+        // Return the pair ( OUR id, OTHER id ); the other still
+        // needs to acknowledge the opened conduit, which is what
+        // the id is for
     return ConduitRefPair(new_id, ret_id);
 }
 
 void BaseNexus::manual_acknowledge_conduit(Raw::ConduitRef ref, InfoFunc info, MessageFunc message)
 {
+        // Update our maps for receiving messages and
+        // info for this conduit
     std::unique_lock<std::mutex> lk(this->Mx_Access);
     
     auto & it = this->Send_Map.find(ref);
@@ -139,48 +253,99 @@ void BaseNexus::manual_acknowledge_conduit(Raw::ConduitRef ref, InfoFunc info, M
     this->Message_Map[ref] = message;
 }
 
-void BaseNexus::close(Raw::ConduitRef ref)
+void BaseNexus::close_conduit(Raw::ConduitRef ref)
 {
     std::unique_lock<std::mutex> lk(this->Mx_Access);
 
-    auto & it = this->Send_Map.find(ref);
-    if (it == this->Send_Map.end())
+        // See if this conduit is actually known; if not
+        // we can just ignore its closure
+    auto & send_it = this->Send_Map.find(ref);
+    if (send_it == this->Send_Map.end())
         return;
-    auto sm = it->second;
+    
+    auto send_handle = send_it->second;
 
+        // Erase the references from the maps
+    this->Send_Map.erase(send_it);
     this->Info_Map.erase(ref);
     this->Message_Map.erase(ref);
-    this->Send_Map.erase(it);
 
     lk.unlock();
 
-    sm.first->receive_closed_conduit_notify(sm.second);
+        // Notify the other nexus the conduit
+        // closed in this unilateral way; we
+        // don't send a message to our own closed
+        // handler seeing as we began the closure
+    send_handle.first->receive_closed_conduit_notify(send_handle.second);
 }
+
+    //  Conduits internal
+    // --------------------
 
 Raw::ConduitRef BaseNexus::reciprocate_opened_conduit(INexus * nexus, Raw::ConduitRef ref) noexcept
 {
+        // Get id for calling us on the new conduit
     auto new_id = this->internal_get_free_conduit_id();
 
     std::unique_lock<std::mutex> lk(this->Mx_Access);
     
+        // Add us to the send map - we don't know yet
+        // what functions to call until the conduit
+        // is acknowledged with manual_acknowledge_conduit
     this->Send_Map[new_id] = { nexus, ref };
 
     return new_id;
 }
 
-    //  Sending / Receiving
+void BaseNexus::receive_closed_conduit_notify(Raw::ConduitRef ref) noexcept
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+ 
+        // This reference should always be known but
+        // we handle its failure gracefully
+    auto & it = this->Info_Map.find(ref);
+    if (it == this->Info_Map.end()) {
+        return;
+    }
+    
+        // Erase the conduit from all the maps
+    this->Info_Map.erase(it);
+    this->Message_Map.erase(ref);
+    this->Send_Map.erase(ref);
+
+        // If we are not available for incoming we
+        // will not report to the function that the
+        // conduit has been closed
+    if (!this->Is_Available_For_Incoming) {
+        return;
+    }
+
+    auto sm = it->second;
+
+    lk.unlock();
+
+        // Send a message to the appropriate conduit
+        // info function that it was closed
+    ConduitUpdateInfo info;
+    info.State = ConduitState::closed;
+
+    sm(ref, info);
+}
+
+    //  Messages for users of class
     // --------------------
 
-void BaseNexus::send_on(Raw::ConduitRef ref, Raw::IRelayMessage * msg)
+void BaseNexus::send_on_conduit(Raw::ConduitRef ref, Raw::IMessage * msg)
 {
     std::unique_lock<std::mutex> lk(this->Mx_Access);
 
+        // Ensure we can find the conduit; if not we
+        // fail the message with a connexion problem
     auto & it = this->Send_Map.find(ref);
     if (it == this->Send_Map.end()) {
         lk.unlock();
 
-        msg->set_response_string_with_copy("Conduit was not open");
-        msg->set_FAILED_connexion();
+        msg->set_FAILED(Raw::FailState::failed_no_connexion);
         msg->release();
 
         return;
@@ -189,45 +354,47 @@ void BaseNexus::send_on(Raw::ConduitRef ref, Raw::IRelayMessage * msg)
     auto sm = it->second;
     lk.unlock();
 
+        // Call the other nexus to record the conduit
     if (sm.first->receive_on_conduit(sm.second, msg))
         return;
     
     DbAssertMsgFatal(0, "Conduit did not accept message");
 }
 
-bool BaseNexus::receive_on_conduit(Raw::ConduitRef ref, Raw::IRelayMessage * msg) noexcept
+    //  Messages internal
+    // --------------------
+    
+bool BaseNexus::receive_on_conduit(Raw::ConduitRef ref, Raw::IMessage * msg) noexcept
 {
-    this->internal_push_message({ ref, nullptr, msg });
+        // Queue the object
+    QueueObject obj;
+    obj.Type = QueueObjectType::conduit_message;
+    obj.Received_On_Conduit = ref;
+    obj.Message = msg;
+
+    this->internal_push_to_queue(std::move(obj));
+
     return true;
 }
 
-void BaseNexus::receive_closed_conduit_notify(Raw::ConduitRef ref) noexcept
+void BaseNexus::internal_sync_dismiss_unaccepted_object(QueueObject object)
 {
-    std::unique_lock<std::mutex> lk(this->Mx_Access);
- 
-    auto & it = this->Info_Map.find(ref);
-    if (it == this->Info_Map.end()) {
-        if (this->Is_Orphan) {
-            this->internal_sync_handle_being_orphan();
-        }
-        return;
+    switch (object.Type) {
+    case QueueObjectType::ad_hoc_message:
+    case QueueObjectType::conduit_message:
+        object.Message->set_FAILED(Raw::FailState::receiver_will_not_handle);
+        object.Message->release();
+        break;
+    case QueueObjectType::conduit_update:
+        this->internal_sync_handle_conduit_update(object);
+        break;
+    case QueueObjectType::message_reply:
+        ((BaseNexusMessage*)object.Message)->destroy_for_nexus();
+        break;
     }
-
-    auto sm = it->second;
-    
-    this->Info_Map.erase(it);
-    this->Message_Map.erase(ref);
-    this->Send_Map.erase(ref);
-
-    lk.unlock();
-
-    ConduitUpdateInfo info;
-    info.State = ConduitState::closed;
-
-    sm(ref, info);
 }
 
-    //  Util
+    //  Utility
     // --------------------
 
 Raw::ConduitRef BaseNexus::internal_get_free_conduit_id()
@@ -240,13 +407,28 @@ Raw::ConduitRef BaseNexus::internal_get_free_conduit_id()
     return ref;
 }
 
-void BaseNexus::async_add_ad_hoc_message(Raw::IRelayMessage * msg)
-{
-    this->internal_push_message({ Raw::ConduitRefNone, nullptr, msg });
-}
-
-void BaseNexus::make_orphan()
+void BaseNexus::internal_push_to_queue(QueueObject obj)
 {
     std::unique_lock<std::mutex> lk(this->Mx_Access);
-    this->Is_Orphan = true;
+
+    if (!this->Is_Available_For_Incoming) {
+        this->internal_sync_dismiss_unaccepted_object(obj);
+    }
+
+    this->Primary_Queue.push(obj);
+    lk.unlock();
+
+    this->Cv_Queue_And_Events.notify_one();
+}
+
+void BaseNexus::async_add_ad_hoc_message(Raw::IMessage * msg)
+{
+    DbAssert(!this->Is_Orphan);
+    DbAssert(!this->Is_Available_For_Incoming);
+    
+    QueueObject obj;
+    obj.Type = QueueObjectType::ad_hoc_message;
+    obj.Message = msg;
+
+    this->internal_push_to_queue(std::move(obj));
 }
