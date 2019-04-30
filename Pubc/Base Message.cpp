@@ -5,135 +5,101 @@
 #include "BlackRoot/Pubc/Exception.h"
 
 #include "Conduits/Pubc/Base Message.h"
-#include "Conduits/Pubc/Base Conduit.h"
 #include "Conduits/Pubc/Path Tools.h"
 
 using namespace Conduits;
 
-    //  Setup
-    // --------------------
-
-IBaseMessage::IBaseMessage()
-{
-    this->Open_Conduit_Func = nullptr;
-    this->Message_State     = Conduits::MessageState::pending;
-    this->Response_Desire   = Conduits::ResponseDesire::not_needed;
-}
-
     //  Sender
     // --------------------
 
-void IBaseMessage::set_message_segments_from_list(const SegmentList & list)
+void IBaseMessage::add_message_segment(SegmentData data)
+{
+    this->Segment_Map[data.Name].assign((char*)data.Data, data.Length);
+}
+
+void IBaseMessage::add_message_segments_from_list(const SegmentList & list)
 {
     for (const auto & elem : list) {
-        this->Message_Segments[elem.first].assign((char*)elem.second.Data, elem.second.Length);
+        this->add_message_segment(elem);
     }
+}
+
+void IBaseMessage::set_message_string_as_path(std::string str)
+{
+    this->Message_String    = Util::Sanitise_Path(str);
 }
 
 void IBaseMessage::sender_prepare_for_send()
 {
-        // Santise path and expose to c-like variable
-    this->Path = Util::Sanitise_Path(this->Path);
-    this->Adapting_Path = this->Path.c_str();
-}
-
-    //  Conduits
-    // --------------------
-
-void IBaseMessage::open_conduit_for_sender(Raw::INexus *nexus, Raw::IOpenConduitHandler *handler) noexcept
-{
-    if (!this->Open_Conduit_Func) {
-        Raw::IOpenConduitHandler::ResultData data;
-        handler->handle_failure(&data);
-        return;
-    }
-
-    (*this->Open_Conduit_Func)(nexus, this, handler);
-}
-
-void IBaseMessage::set_open_conduit_function(OpenConduitFunc * func)
-{
-    this->Open_Conduit_Func = func;
+    this->Adapting_String   = this->Message_String.c_str();
 }
 
     //  Receiver
     // --------------------
-
-IBaseMessage::ResDes IBaseMessage::get_response_expectation() noexcept
+    
+IBaseMessage::RespDesire IBaseMessage::get_response_expectation() noexcept
 {
     return this->Response_Desire;
 }
 
-const char * IBaseMessage::get_path_string() const noexcept
+const IBaseMessage::SegmentData IBaseMessage::get_message_segment(char * name) const noexcept
 {
-    return this->Path.c_str();
-}
-
-const IBaseMessage::SegmentRef IBaseMessage::get_message_segment(SegIndex index) const noexcept
-{
-    const auto & seg = this->Message_Segments.find(index);
-    if (seg == this->Message_Segments.end()) {
-        return { 0, nullptr };
+    const auto & seg = this->Segment_Map.find(name);
+    if (seg == this->Segment_Map.end()) {
+        SegmentData data;
+        data.Name   = nullptr;
+        data.Data   = nullptr;
+        data.Length = 0;
+        return data;
     }
-    return { seg->second.size(), (void*)seg->second.c_str() };
+
+    SegmentData data;
+    data.Name   = seg->first.c_str();
+    data.Data   = (void*)seg->second.c_str();
+    data.Length = seg->second.size();
+    return data;
 }
 
-bool IBaseMessage::set_response_string_with_copy(const char * str) noexcept
+size_t IBaseMessage::get_message_segment_count() const noexcept
 {
-    this->Response_String = str;
-    return true;
+    return this->Segment_Map.size();
 }
 
-bool IBaseMessage::set_response_segment_with_copy(SegIndex index, const SegmentRef ref) noexcept
-{
-    auto & seg = this->Response_Segments[index];
-    seg.assign((char*)ref.Data, ref.Length);
-    return true;
-}
-
-const char * IBaseMessage::get_response_string() const noexcept
-{
-    return this->Response_String.c_str();
-}
-
-const IBaseMessage::SegmentRef IBaseMessage::get_response_segment(SegIndex index) const noexcept 
-{
-    const auto & seg = this->Response_Segments.find(index);
-    if (seg == this->Response_Segments.end()) {
-        return { 0, nullptr };
-    }
-    return { seg->second.size(), (void*)seg->second.c_str() };
-}
-
-uint8 IBaseMessage::get_message_segment_indices(uint8 * indices, size_t max) const noexcept
+size_t IBaseMessage::get_message_segment_list(SegmentData * out_segments, size_t max_segments) const noexcept
 {
     size_t count = 0;
 
-    for (const auto & seg : this->Message_Segments) {
-        if (count >= max)
-            return uint8(count);
-        indices[count++] = seg.first;
+    for (auto & elem : this->Segment_Map) {
+        if (count >= max_segments)
+            return count;
+            
+        out_segments[count].Name    = elem.first.c_str();
+        out_segments[count].Data    = (void*)elem.second.c_str();
+        out_segments[count].Length  = elem.second.size();
     }
 
-    return uint8(count);
+    return count;
 }
 
-void IBaseMessage::set_OK() noexcept
+void IBaseMessage::set_OK(OKState state) noexcept
 {
-    this->Message_State = Conduits::MessageState::ok;
+    this->Message_State = MessageState::ok;
+    this->State_OK = state;
 }
 
-void IBaseMessage::set_OK_opened_conduit() noexcept
+void IBaseMessage::set_FAILED(FailState state) noexcept
 {
-    this->Message_State = Conduits::MessageState::ok_opened_conduit;
+    this->Message_State = MessageState::failed;
+    this->State_Fail = state;
 }
 
-void IBaseMessage::set_FAILED() noexcept
+void IBaseMessage::add_response(IMessage * msg) noexcept
 {
-    this->Message_State = Conduits::MessageState::failed;
-}
+    if (this->Response_Desire != Raw::ResponseDesire::required) {
+        msg->set_FAILED(Raw::FailState::failed_no_response_expected);
+        msg->release();
+        return;
+    }
 
-void IBaseMessage::set_FAILED_connexion() noexcept
-{
-    this->Message_State = Conduits::MessageState::connexion_failure;
+    this->Response = msg;
 }

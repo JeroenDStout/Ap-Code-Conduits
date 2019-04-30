@@ -13,59 +13,70 @@
 
 namespace Conduits {
 
-    class IBaseMessage : public Raw::IRelayMessage {
+    class IBaseMessage : public Raw::IMessage {
     public:
-        using SegIndex        = Raw::SegIndex;
-        using SegmentData     = std::string;
-        using SegmentMap      = std::map<SegIndex, SegmentData>;
-        using SegmentList     = std::vector<std::pair<SegIndex, Raw::SegmentData>>;
-        using ResDes          = ResponseDesire::Type;
-        using State           = MessageState::Type;
-        using SegmentRef      = Raw::SegmentData;
-        using OpenConduitFunc = std::function<void(Raw::INexus *, Raw::IRelayMessage *, Raw::IOpenConduitHandler *)>;
-
-    public:
-        std::string         Path;
+        struct MessageState {
+            using Type = uint8;
+            enum : Type {
+                pending,
+                ok,
+                failed
+            };
+        };
         
+        using SegmentData    = Raw::SegmentData;
+
+        using SegmentName    = std::string;
+        using SegmentIndex   = uint32;
+        using SegmentMap     = std::map<SegmentName, std::string>;
+        using SegmentList    = std::vector<SegmentData>;
+
+        using RespDesire     = Raw::ResponseDesire::Type;
+        using OKState        = Raw::OKState::Type;
+        using FailState      = Raw::FailState::Type;
+
+    public:
         std::string         Message_String;
-        std::string         Response_String;
 
-        SegmentMap          Message_Segments;
-        SegmentMap          Response_Segments;
+        SegmentMap          Segment_Map;
 
-        State               Message_State;
-        ResDes              Response_Desire;
+        RespDesire          Response_Desire;
 
-        OpenConduitFunc     *Open_Conduit_Func;
+        MessageState::Type  Message_State;
+        OKState             State_OK;
+        FailState           State_Fail;
 
-        IBaseMessage();
+        Raw::IMessage      *Response;
+
+        IBaseMessage()
+        : Response_Desire(Raw::ResponseDesire::not_allowed),
+          Message_State(MessageState::pending),
+          Response(nullptr)
+        { }
         virtual ~IBaseMessage() { ; }
+        
+        // --- Sender utility
 
-        virtual void     set_message_segments_from_list(const SegmentList &);
-        virtual void     set_open_conduit_function(OpenConduitFunc*);
+        virtual void     set_message_string_as_path(std::string);
+        
+        virtual void     add_message_segment(SegmentData);
+        virtual void     add_message_segments_from_list(const SegmentList &);
 
         void             sender_prepare_for_send();
-
-            // Implementation of message handle functions
-
-        ResDes           get_response_expectation() noexcept override;
-
-        const char *     get_path_string() const noexcept override;
-        const SegmentRef get_message_segment(SegIndex index) const noexcept override;
-        uint8            get_message_segment_indices(uint8 * out_segments, size_t max_segments) const noexcept override;
-
-        bool             set_response_string_with_copy(const char*) noexcept override;
-        bool             set_response_segment_with_copy(SegIndex index, const SegmentRef) noexcept override;
-
-        const char *     get_response_string() const noexcept override;
-        const SegmentRef get_response_segment(SegIndex index) const noexcept override;
         
-        void             open_conduit_for_sender(Raw::INexus*, Raw::IOpenConduitHandler*) noexcept override;
+        // --- Implementation of IMessage
+        
+        RespDesire get_response_expectation() noexcept override;
+        
+        const SegmentData get_message_segment(char*) const noexcept override;
 
-        void             set_OK() noexcept override;
-        void             set_OK_opened_conduit() noexcept;
-        void             set_FAILED() noexcept override;
-        void             set_FAILED_connexion() noexcept override;
+        size_t get_message_segment_count() const noexcept override;
+        size_t get_message_segment_list(SegmentData * out_segments, size_t max_segments) const noexcept override;
+
+        void set_OK(OKState) noexcept override;
+        void set_FAILED(FailState) noexcept override;
+
+        void add_response(IMessage *) noexcept override;
     };
 
 }
