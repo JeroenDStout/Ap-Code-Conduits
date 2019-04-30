@@ -21,8 +21,13 @@ namespace Raw {
         using Type = uint8;
         enum : Type {
             required,
+            allowed,
             not_allowed
         };
+
+        inline static bool response_is_possible(Type v) {
+            return (v != not_allowed);
+        }
     };
 
     struct OKState {
@@ -40,7 +45,8 @@ namespace Raw {
             failed_no_conduit,
             failed_no_connexion,
             failed_no_response_expected,
-            failed_timed_out
+            failed_timed_out,
+            receiver_will_not_handle
         };
     };
 
