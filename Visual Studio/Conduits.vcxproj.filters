@@ -37,9 +37,6 @@
     <ClInclude Include="..\Pubc\Await Message.h">
       <Filter>Message</Filter>
     </ClInclude>
-    <ClInclude Include="..\Pubc\Function Message.h">
-      <Filter>Message</Filter>
-    </ClInclude>
     <ClInclude Include="..\Pubc\Simple Relay Dir.h">
       <Filter>Relay</Filter>
     </ClInclude>
@@ -63,6 +60,9 @@
     </ClInclude>
     <ClInclude Include="..\Pubc\Raw Message State.h">
       <Filter>Raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Pubc\Base Nexus Message.h">
+      <Filter>Conduit</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

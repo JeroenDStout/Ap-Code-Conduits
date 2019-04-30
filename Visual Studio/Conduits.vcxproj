@@ -141,9 +141,9 @@
     <ClInclude Include="..\Pubc\Await Message.h" />
     <ClInclude Include="..\Pubc\Base Conduit.h" />
     <ClInclude Include="..\Pubc\Base Message.h" />
+    <ClInclude Include="..\Pubc\Base Nexus Message.h" />
     <ClInclude Include="..\Pubc\Base Nexus.h" />
     <ClInclude Include="..\Pubc\Disposable Message.h" />
-    <ClInclude Include="..\Pubc\Function Message.h" />
     <ClInclude Include="..\Pubc\Interface Nexus.h" />
     <ClInclude Include="..\Pubc\Path Tools.h" />
     <ClInclude Include="..\Pubc\Raw Message State.h" />
