@@ -14,18 +14,21 @@ namespace Conduits {
 
     class BaseNexusMessage : public IBaseMessage {
     public:
-        using CallbackFunc = std::function<void(BaseNexusMessage * msg)>;
+        using   OpenConduitFunc = std::function<void(Raw::INexus*, Raw::IOpenConduitHandler*)>;
+        using   OnReleaseFunc   = std::function<void(BaseNexusMessage * msg)>;
         
-    protected:
-        CallbackFunc    Callback;
+        OpenConduitFunc  Open_Conduit_Func;
+        OnReleaseFunc    On_Release_Func;
 
-    public:
+        Raw::ConduitRef  Conduit_ID;
+
             // Called by nexus to call the callback func
         void call_for_nexus();
 
             // Called by nexus to delete the object
         virtual void destroy_for_nexus();
-
+        
+        void open_conduit_for_sender(Raw::INexus*, Raw::IOpenConduitHandler*) noexcept override;
         void release() noexcept override;
     };
     
