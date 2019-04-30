@@ -19,19 +19,21 @@ namespace Util {
 
         FileSource  *Inner_Source;
 
-        bool handle(FileSource::FilePath local, const char * path, Raw::IRelayMessage * msg);
+        bool handle(FileSource::FilePath local, const char * path, Raw::IMessage * msg);
     };
 
-    inline bool HttpFileServer::handle(FileSource::FilePath local, const char * _path, Raw::IRelayMessage * msg)
+    inline bool HttpFileServer::handle(FileSource::FilePath local, const char * _path, Raw::IMessage * msg)
     {
         namespace fs = std::experimental::filesystem;
         using JSON = SavvyRelayMessageReceiver::JSON;
 
         bool found = false;
 
-        SavvyRelayMessageReceiver::savvy_try_wrap_read_write_json(msg, 0, 0, [&](JSON json) {
+        SavvyRelayMessageReceiver::savvy_try_wrap(msg, [&] {
             std::string suffix = "/http";
             std::string path   = _path;
+
+            std::unique_ptr<Conduits::DisposableMessage> reply(new Conduits::DisposableMessage());
 
             if (path.size() >= suffix.size() &&
                 std::equal(path.begin() + path.size() - suffix.size(), path.end(), suffix.begin()))
@@ -42,7 +44,7 @@ namespace Util {
             auto file_path = local / path;
 
             if (!this->Inner_Source->FileExists(file_path)) {
-                return JSON({ "response-code", "HTTP/1.1 404 Not Found" });
+                reply->Segment_Map["header"] = "{ \"response-code\", \"HTTP/1.1 404 Not Found]\" }";
             }
 
             JSON httpRet = {};
@@ -69,20 +71,17 @@ namespace Util {
                 httpRet["Content-Type"] = it->second;
             }
 
-                // TODO: use a better function which allocates with us writing to it
-            auto file = this->Inner_Source->ReadFile(file_path, 
+                // Directly read the file into the body part
+            reply->Segment_Map["body"] = this->Inner_Source->ReadFileAsString(file_path, 
                 BlackRoot::IO::IFileSource::OpenInstr{}
                     .Access(BlackRoot::IO::FileMode::Access::Read)
                     .Share(BlackRoot::IO::FileMode::Share::Read)
                     .Creation(BlackRoot::IO::FileMode::Creation::OpenExisting)
                     .Attributes(BlackRoot::IO::FileMode::Attributes::None));
 
-            Raw::SegmentData dat;
-            dat.Data = file.data();
-            dat.Length = file.size();
-            msg->set_response_segment_with_copy(1, dat);
-
             httpRet["response-code"] = "HTTP/1.1 200 OK";
+
+            reply->Segment_Map["header"] = httpRet.dump();
 
             return httpRet;
         });
