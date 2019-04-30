@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Conduits/Pubc/Base Message.h"
+#include "Conduits/Pubc/Interface Conduit.h"
 
 namespace Conduits {
 
