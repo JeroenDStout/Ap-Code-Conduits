@@ -4,26 +4,22 @@
 
 #pragma once
 
-#include <mutex>
-#include <condition_variable>
-
 #include "Conduits/Pubc/Base Message.h"
 
 namespace Conduits {
 
-        // TODO: for now this adds overhead, being based on
-        // IBaseMesage, which *does* expect a response
-        // some future refactoring will have to fold these
-        // into some better structure set
-
     class DisposableMessage : public IBaseMessage {
     protected:
     public:
-        inline ResDes get_response_expectation() noexcept override {
-            return ResponseDesire::not_needed;
+            // We do not allow a disposable message to open a conduit
+        void open_conduit_for_sender(Raw::INexus*, Raw::IOpenConduitHandler * handler) noexcept override {
+            Raw::IOpenConduitHandler::ResultData data;
+            handler->handle_failure(&data);
         }
 
-        inline void release() noexcept override {
+            // As there is no state related to the sender,
+            // we can safely just delete upon release
+        void release() noexcept override {
             delete this;
         }
     };
