@@ -125,9 +125,6 @@
     <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp">
       <Filter>Relay</Filter>
     </ClCompile>
-    <ClCompile Include="..\Pubc\Base Conduit.cpp">
-      <Filter>Conduit</Filter>
-    </ClCompile>
     <ClCompile Include="..\Pubc\Base Nexus.cpp">
       <Filter>Conduit</Filter>
     </ClCompile>

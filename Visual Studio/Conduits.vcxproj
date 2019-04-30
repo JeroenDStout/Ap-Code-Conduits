@@ -161,7 +161,6 @@
     <ClInclude Include="..\Pub_ts\Websocket Protocol What-ho.ts" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Pubc\Base Conduit.cpp" />
     <ClCompile Include="..\Pubc\Base Message.cpp" />
     <ClCompile Include="..\Pubc\Base Nexus.cpp" />
     <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp" />
