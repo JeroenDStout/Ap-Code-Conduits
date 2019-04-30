@@ -19,6 +19,8 @@ namespace Conduits {
         bool                     Has_Been_Released;
 
     public:
+            // The sender holds on to the reference of the messge and
+            // waits on it; remaining responsible for the memory
         void sender_await() noexcept {
             std::unique_lock<std::mutex> lk(this->Mx_Condition_Variable);
             this->Cv_Condition_Variable.wait(lk, [&]{
