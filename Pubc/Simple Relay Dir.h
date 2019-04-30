@@ -19,11 +19,11 @@ namespace Conduits {
 
         std::map<std::string, CallType> Call_Map;
 
-        bool try_relay_immediate(const char * path, Raw::IRelayMessage * msg);
+        bool try_relay_immediate(const char * path, Raw::IMessage * msg);
         void dir_relay(RMRDir & dir);
     };
 
-    inline bool SimpleRelayDir::try_relay_immediate(const char * path, Raw::IRelayMessage * msg)
+    inline bool SimpleRelayDir::try_relay_immediate(const char * path, Raw::IMessage * msg)
     {
         auto & it = this->Call_Map.find(path);
         if (it == this->Call_Map.end())
