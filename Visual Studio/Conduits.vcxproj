@@ -146,12 +146,12 @@
     <ClInclude Include="..\Pubc\Function Message.h" />
     <ClInclude Include="..\Pubc\Interface Nexus.h" />
     <ClInclude Include="..\Pubc\Path Tools.h" />
+    <ClInclude Include="..\Pubc\Raw Message State.h" />
     <ClInclude Include="..\Pubc\Websocket Protocol Messages.h" />
     <ClInclude Include="..\Pubc\Savvy Relay Receiver.h" />
     <ClInclude Include="..\Pubc\Interface Conduit.h" />
     <ClInclude Include="..\Pubc\Interface Raw Message.h" />
     <ClInclude Include="..\Pubc\Interface Relay Receiver.h" />
-    <ClInclude Include="..\Pubc\Message State.h" />
     <ClInclude Include="..\Pubc\Simple Relay Dir.h" />
     <ClInclude Include="..\Pubc\Version.h" />
     <ClInclude Include="..\Pubc\Register.h" />
