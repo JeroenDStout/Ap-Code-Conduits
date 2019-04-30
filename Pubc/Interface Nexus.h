@@ -23,13 +23,11 @@ namespace Raw {
     public:
         virtual void destroy() noexcept = 0;
 
-        virtual bool receive_on_conduit(ConduitRef, Raw::IRelayMessage *) noexcept = 0;
+        virtual bool receive_on_conduit(ConduitRef, Raw::IMessage *) noexcept = 0;
         virtual ConduitRef reciprocate_opened_conduit(INexus *, ConduitRef) noexcept = 0;
 
         virtual void receive_closed_conduit_notify(ConduitRef) noexcept = 0;
     };
-        
-    static_assert(sizeof(INexus) == sizeof(void*), "Packing issue");
 
 }
 }

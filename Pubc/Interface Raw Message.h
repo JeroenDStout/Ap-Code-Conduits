@@ -33,7 +33,7 @@ namespace Conduits {
 
             virtual ResponseDesire::Type get_response_expectation() noexcept = 0;
 
-            virtual const SegmentData get_message_segment(char*) const noexcept = 0;
+            virtual const SegmentData get_message_segment(const char*) const noexcept = 0;
 
             virtual size_t get_message_segment_count() const noexcept = 0;
             virtual size_t get_message_segment_list(SegmentData * out_segments, size_t max_segments) const noexcept = 0;
@@ -43,7 +43,7 @@ namespace Conduits {
             virtual void set_OK(OKState::Type = OKState::ok) noexcept = 0;
             virtual void set_FAILED(FailState::Type = FailState::failed) noexcept = 0;
 
-            virtual void add_response(IMessage *) noexcept = 0;
+            virtual void set_response(IMessage *) noexcept = 0;
 
             virtual void release() noexcept = 0;
         };

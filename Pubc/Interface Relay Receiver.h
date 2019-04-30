@@ -19,16 +19,16 @@ namespace Conduits {
         using JSON   = BlackRoot::Format::JSON;
         using RMRDir = JSON::array_t;
 
-        using MessageHandleFunc = void(Raw::IRelayMessage*);
+        using MessageHandleFunc = void(Raw::IMessage*);
 
         template<typename C>
-        using ClassCallFunc = void (C::*)(Raw::IRelayMessage*);
+        using ClassCallFunc = void (C::*)(Raw::IMessage*);
 
     protected:
-        inline virtual bool internal_rmr_try_call_immediate(const char * path, Raw::IRelayMessage * msg) {
+        inline virtual bool internal_rmr_try_call_immediate(const char * path, Raw::IMessage * msg) {
             return rmr_handle_call_failure_immediate(path, msg);
         }
-        inline virtual bool internal_rmr_try_relay_immediate(const char * path, Raw::IRelayMessage * msg) {
+        inline virtual bool internal_rmr_try_relay_immediate(const char * path, Raw::IMessage * msg) {
             return rmr_handle_relay_failure_immediate(path, msg);
         }
         inline virtual void internal_rmr_dir(RMRDir & dir) {
@@ -41,14 +41,14 @@ namespace Conduits {
             return "IRelayMessageReceiver";
         }
 
-        virtual bool rmr_handle_call_failure_immediate(const char * path, Raw::IRelayMessage *);
-        virtual bool rmr_handle_relay_failure_immediate(const char * path, Raw::IRelayMessage *);
+        virtual bool rmr_handle_call_failure_immediate(const char * path, Raw::IMessage *);
+        virtual bool rmr_handle_relay_failure_immediate(const char * path, Raw::IMessage *);
 
     public:
         virtual ~IRelayMessageReceiver() = 0 { ; }
 
-        bool rmr_handle_message_immediate(Raw::IRelayMessage *);
-        void rmr_handle_message_immediate_and_release(Raw::IRelayMessage *);
+        bool rmr_handle_message_immediate(Raw::IMessage *);
+        void rmr_handle_message_immediate_and_release(Raw::IMessage *);
     };
 
     namespace Helper {
@@ -61,7 +61,7 @@ namespace Conduits {
             std::map<std::string, CallFuncPtr> Map;
 
                 // Try to match a string to a function or return false
-            inline bool try_call(C * c, const char * call, Raw::IRelayMessage * msg) {
+            inline bool try_call(C * c, const char * call, Raw::IMessage * msg) {
                 auto & it = Map.find(call);
                 if (it != Map.end()) {
                     (c->*(it->second))(msg);
@@ -90,14 +90,14 @@ namespace Conduits {
     public: \
     using RelayReceiverClass = x; \
     using RelayReceiverBaseClass = baseClass; \
-    using RawRelayMessage = Conduits::Raw::IRelayMessage; \
+    using RawRelayMessage = Conduits::Raw::IMessage; \
     \
     struct __RelayReceiverProps##x { \
         Conduits::Helper::RelayReceiverFunctionMap<x> Function_Map; \
     };\
     static __RelayReceiverProps##x _RelayReceiverProps##x; \
     \
-    inline bool internal_rmr_try_call_immediate(const char * call, Conduits::Raw::IRelayMessage * msg) override { \
+    inline bool internal_rmr_try_call_immediate(const char * call, Conduits::Raw::IMessage * msg) override { \
         if (_RelayReceiverProps##x.Function_Map.try_call(this, call, msg)) { \
             return true; \
         } \
@@ -125,7 +125,7 @@ namespace Conduits {
     static Conduits::Helper::RelayReceiverFunctionConnector<x> RelayReceiverFunctionConnector##x##func(&(x::_RelayReceiverProps##x.Function_Map), #func, &x::_##func);
 
 #define CON_RMR_USE_DIRECT_RELAY(RelayMember) \
-    inline bool internal_rmr_try_relay_immediate(const char * path, Conduits::Raw::IRelayMessage * msg) override { \
+    inline bool internal_rmr_try_relay_immediate(const char * path, Conduits::Raw::IMessage * msg) override { \
         if (this->RelayMember.try_relay_immediate(path, msg)) \
             return true; \
         return RelayReceiverBaseClass::internal_rmr_try_relay_immediate(path, msg); \
