@@ -179,10 +179,10 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
         }
     
             // http_response means we may have to pass headers back;
-            // we stringify the json and put it in segment 'http'
+            // we stringify the json and put it in segment 'header'
             // while the body evidently goes in segment 'body'
         if (!http_reponse.is_null()) {
-            reply->Segment_Map["http"] = http_reponse.dump();
+            reply->Segment_Map["header"] = http_reponse.dump();
         }
         reply->Segment_Map["body"] = std::move(message_body);
 
