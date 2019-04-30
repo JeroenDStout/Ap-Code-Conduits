@@ -6,7 +6,6 @@
 
 #include "BlackRoot/Pubc/Number Types.h"
 
-#include "Conduits/Pubc/Message State.h"
 #include "Conduits/Pubc/Interface Conduit.h"
 
 namespace Conduits {
