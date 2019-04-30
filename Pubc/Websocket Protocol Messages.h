@@ -18,36 +18,42 @@ namespace Protocol {
     struct StateFlags {
         using Type = uint8;
         
-        static const Type   Has_String           = 0x01;
-        static const Type   Has_Segments         = 0x02;
-        static const Type   Is_Response          = 0x04;
+        static const Type   Has_String               = 0x01;
+        static const Type   Has_Segments             = 0x02;
+        static const Type   Is_Response              = 0x04;
 
             // if response...
-        static const Type   Has_Succeeded        = 0x08;
+        static const Type   Is_OK                    = 0x08;
 
-            // if response succeeded...
-        static const Type   Confirm_Open_Conduit = 0x10;
+            // if response is OK...
+        static const Type   Confirm_Opened_Conduit   = 0x10;
 
-            // if response not succeeded
-        static const Type   Connexion_Failure    = 0x10;
+            // if response not OK...
+        static const Type   Connexion_Failure        = 0x10;
+        static const Type   No_response_Expected     = 0x20;
+        static const Type   Timed_Out                = 0x40;
+        static const Type   Receiver_Will_Not_Handle = 0x80;
 
             // if not response...
-        static const Type   Requires_Response    = 0x08;
-        static const Type   Ping_Conduit         = 0x10;
-        static const Type   Close_Conduit        = 0x20;
+        static const Type   Accepts_Response         = 0x08;
+        static const Type   Ping_Conduit             = 0x10;
+        static const Type   Close_Conduit            = 0x20;
     };
 
         // ------ Message
 
     struct MessageScratch {
-        using State       = MessageState::Type;
-        using SegmentElem = std::pair<uint8, Raw::SegmentData>;
-        using SegmentList = std::vector<SegmentElem>;
+        using OKState       = Raw::OKState::Type;
+        using FailState     = Raw::FailState::Type;
 
-        uint32            Recipient_ID;
-        uint32            Reply_To_Me_ID;
+        using SegmentElem   = std::pair<std::string, Raw::SegmentData>;
+        using SegmentList   = std::vector<SegmentElem>;
 
         StateFlags::Type  Flags;
+
+        uint32  Recipient_ID;
+        uint32  Reply_To_Me_ID;
+        uint32  Opened_Conduit_ID;
 
         const char        *String;
         uint16            String_Length;
@@ -62,28 +68,28 @@ namespace Protocol {
             if (b) { this->Flags |= StateFlags::Is_Response; }
             else { this->Flags &= ~StateFlags::Is_Response; }
         }
-        void set_has_succeeded(bool b) {
-            if (b) { this->Flags |= StateFlags::Has_Succeeded; }
-            else { this->Flags &= ~StateFlags::Has_Succeeded; }
+        void set_is_OK(bool b) {
+            if (b) { this->Flags |= StateFlags::Is_OK; }
+            else { this->Flags &= ~StateFlags::Is_OK; }
         }
         void set_confirm_open_conduit(bool b) {
-            if (b) { this->Flags |= StateFlags::Confirm_Open_Conduit; }
-            else { this->Flags &= ~StateFlags::Confirm_Open_Conduit; }
+            if (b) { this->Flags |= StateFlags::Confirm_Opened_Conduit; }
+            else { this->Flags &= ~StateFlags::Confirm_Opened_Conduit; }
         }
-        void set_requires_response(bool b) {
-            if (b) { this->Flags |= StateFlags::Requires_Response; }
-            else { this->Flags &= ~StateFlags::Requires_Response; }
+        void set_accepts_response(bool b) {
+            if (b) { this->Flags |= StateFlags::Accepts_Response; }
+            else { this->Flags &= ~StateFlags::Accepts_Response; }
         }
         void set_connexion_failure(bool b) {
             if (b) { this->Flags |= StateFlags::Connexion_Failure; }
             else { this->Flags &= ~StateFlags::Connexion_Failure; }
         }
 
-        bool get_is_resonse()           { return 0 != (this->Flags & StateFlags::Is_Response); }
-        bool get_has_succeeded()        { return 0 != (this->Flags & StateFlags::Has_Succeeded); }
-        bool get_confirm_open_conduit() { return 0 != (this->Flags & StateFlags::Confirm_Open_Conduit); }
-        bool get_requires_response()    { return 0 != (this->Flags & StateFlags::Requires_Response); }
-        bool get_connexion_failure()    { return 0 != (this->Flags & StateFlags::Connexion_Failure); }
+        bool get_is_response()  const         { return 0 != (this->Flags & StateFlags::Is_Response); }
+        bool get_is_OK() const                { return 0 != (this->Flags & StateFlags::Is_OK); }
+        bool get_confirm_open_conduit() const { return 0 != (this->Flags & StateFlags::Confirm_Opened_Conduit); }
+        bool get_accepts_response() const     { return 0 != (this->Flags & StateFlags::Accepts_Response); }
+        bool get_connexion_failure() const    { return 0 != (this->Flags & StateFlags::Connexion_Failure); }
         
         static MessageScratch try_parse_message(void * msg, size_t length);
         static std::string    try_stringify_message(const MessageScratch &);
@@ -96,51 +102,49 @@ namespace Protocol {
         MessageScratch ms;
         auto * msg = (char*)(_msg);
 
-            // Fixed header (0) (9 bytes)
-
-        ms.Recipient_ID             = *(uint32*)(msg);  // H+0 Recipient ID (4)
-        msg += 4;
-
-        ms.Reply_To_Me_ID           = *(uint32*)(msg);  // H+4 Reply-To-Me ID (4)
-        msg += 4;
-
-        ms.Flags                    = msg[0];           // H+8 Flags (1)
+        ms.Flags = msg[0];                                  // Flags (1)
         msg += 1;
-            
-            // Optional if has string (H+9) (2+x)
+
+        ms.Recipient_ID = *(uint32*)(msg);                  // Recipient (4)
+        msg += 4;
+
+        if (ms.get_accepts_response()) {
+            ms.Reply_To_Me_ID = *(uint32*)(msg);            // Response ID (4)
+            msg += 4;
+        }
+        
+        if (ms.get_confirm_open_conduit()) {
+            ms.Opened_Conduit_ID = *(uint32*)(msg);         // Conduit ID (4)
+            msg += 4;
+        }
 
         if (0 != (ms.Flags & StateFlags::Has_String)) {
-            ms.String_Length        = *(uint16*)(msg);  // St+0 String length (2)
-            msg += 2;
-
-            ms.String               = msg;              // St+2 String (x)
-            msg += ms.String_Length;
+            ms.String = msg;                                // String value (n, ends with \0)
+            msg += strlen(msg) + 1;
         }
         else {
             ms.String               = nullptr;
             ms.String_Length        = 0;
         }
 
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
-            
         if (0 != (ms.Flags & StateFlags::Has_Segments)) {
-            uint8  segmentCount     = msg[0];           // Sg+0 Segment count (1)
+            uint8  segmentCount     = msg[0];               // Segment count (1)
             msg += 1;
-        
+            
             for (uint8 seg = 0; seg < segmentCount; seg++) {
-                uint8 index         = msg[0];           // Sg+(5*n+Σx_n)+0 Index (1)
-                msg += 1;
-
-                uint32 length       = *(uint32*)(msg);  // Sg+(5*n+Σx_n)+1 Length (4)
-                msg += 4;
+                SegmentElem elem;               
                 
-                Raw::SegmentData data;
-                data.Data = (void*)(msg);               // Sg+(5*n+Σx_n)+5 Data (x_n)
-                data.Length = length;
+                elem.second.Name   = msg;                   // Segment name (n, ends with \0)
+                elem.first         = msg;
+                msg += elem.first.length() + 1;
 
-                ms.Segments.push_back( { index, data } );
+                elem.second.Length = *(uint32*)(msg);       // Segment length (4)
+                msg += 4;
 
-                msg += length;
+                elem.second.Data   = (void*)msg;            // Segment data (n)
+                msg += elem.second.Length;
+
+                ms.Segments.push_back(elem);
             }
         }
 
@@ -156,57 +160,63 @@ namespace Protocol {
         int required_size;
         StateFlags::Type flags = msg.Flags;
 
-            // Fixed header, 9 bytes (0) (9 bytes)
+            // Calculate needed size
 
-        required_size = 9;
-        
-            // Optional if has message (H+9) (2+x)
+        required_size = 5;                                  // Flags + Recipient ID (5)
 
-        if (msg.String_Length > 0) {
-            flags |= StateFlags::Has_String;
-            required_size += 2 + msg.String_Length;
+        if (msg.get_accepts_response()) {
+            required_size += 4;                             // Response ID (4)
+        }
+        if (msg.get_confirm_open_conduit()) {
+            required_size += 4;                             // Conduit ID (4)
         }
         
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
+        if (0 != (msg.Flags & StateFlags::Has_String)) {
+            required_size += msg.String_Length + 1;         // String value ending in \0 (n + 1)
+        }
 
         if (msg.Segments.size() > 0) {
             flags |= StateFlags::Has_Segments;
-            required_size += 1;
+            required_size += 1;                             // Segment count (1)
             for (const auto & seg : msg.Segments) {
                 DbAssertFatal(seg.second.Length <= 0xFFFFFFFF);
-                required_size += 5 + seg.second.Length;
+                required_size += seg.first.size() + 1;      // String name ending in \0 (n + 1)
+                required_size += 4;                         // Segment size (4)
+                required_size += seg.second.Length;         // Segment data (n)
             }
         }
+
+            // Store correct values
 
         std::string ret;
         ret.reserve(required_size);
 
-            // Fixed header (0) (9 bytes)
+        ret.append((char*)&msg.Flags, 1);                   // Flags (1)
+
+        ret.append((char*)&msg.Recipient_ID, 4);            // Recipient ID (4)
         
-        ret.append((char*)(&msg.Recipient_ID), 4);              // H+0 Recipient ID (4)
-        ret.append((char*)(&msg.Reply_To_Me_ID), 4);            // H+4 Reply-To-Me ID (4)
-        ret.append((char*)(&flags), 1);                         // H+8 Flags (1)
-            
-            // Optional if has string (H+9) (2+x)
-
-        if (msg.String_Length > 0) {
-            ret.append((char*)(&msg.String_Length), 2);         // St+0 String length (2)
-            ret.append(msg.String, msg.String_Length);          // St+2 String (x)
+        if (msg.get_accepts_response()) {
+            ret.append((char*)&msg.Reply_To_Me_ID, 4);      // Response ID (4)
         }
-
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
-
+        if (msg.get_confirm_open_conduit()) {
+            ret.append((char*)&msg.Opened_Conduit_ID, 4);   // Conduit ID (4)
+        }
+        
+        if (0 != (msg.Flags & StateFlags::Has_String)) {
+            ret.append(msg.String, msg.String_Length);
+            ret.append('\0');                               // String value ending in \0 (n + 1)
+        }
+        
         if (msg.Segments.size() > 0) {
-            uint8 segmentCount = (uint8)(msg.Segments.size());
-            ret.append((char*)(&segmentCount), 1);              // St+0 String length (2)
+            uint8 segment_count = (uint8)(msg.Segments.size());
+            ret.append((char*)&segment_count, 1);           // Segment count (1)
             
             for (const auto & seg : msg.Segments) {
-                ret.append((char*)(&seg.first), 1);             // Sg+(5*n+Σx_n)+0 Index (1)
+                ret.append(seg.first);
+                ret.append('\0');;                          // String name ending in \0 (n + 1)
 
-                uint32 segSize = (uint32)(seg.second.Length);
-                ret.append((char*)(&segSize), 4);               // Sg+(5*n+Σx_n)+1 Size (4)
-                
-                ret.append((char*)(seg.second.Data), segSize); // Sg+(5*n+Σx_n)+5 Data (x_n)
+                ret.append((char*)&seg.second.Length);      // Segment size (4)
+                ret.append((char*)seg.second.Data);         // Segment data (n)
             }
         }
 
