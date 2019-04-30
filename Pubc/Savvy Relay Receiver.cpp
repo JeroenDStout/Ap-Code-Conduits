@@ -170,7 +170,7 @@ void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
             reply->Message_String = "Malformed query";
             msg->set_response(reply.release());
             msg->set_FAILED();
-            return JSON(0);
+            return;
         }
 
             // Internally deal with it
