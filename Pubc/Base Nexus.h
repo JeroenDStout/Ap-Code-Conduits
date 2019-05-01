@@ -22,6 +22,10 @@ namespace Conduits {
             open    = 0x1 << 0,
             closed  = 0x1 << 1
         };
+
+        static bool is_closed(Type state) {
+            return state == closed;
+        }
     };
 
     struct ConduitUpdateInfo {
@@ -80,6 +84,8 @@ namespace Conduits {
         std::condition_variable  Cv_Queue_And_Events;
         ObjectQueue              Primary_Queue;
 
+        std::vector<BaseNexusMessage*>  Handling_Messages;
+
             // Relay handling
 
         AdHocMsgFunc    Ad_Hoc_Handler;
@@ -95,10 +101,9 @@ namespace Conduits {
 
             // Utility
 
-        void            internal_push_to_queue(QueueObject);
+        void            internal_sync_push_to_queue(QueueObject);
         void            internal_sync_handle_being_orphan();
         
-        void            internal_sync_handle_conduit_update(QueueObject);
         void            internal_sync_dismiss_unaccepted_object(QueueObject);
 
             // ???
@@ -131,13 +136,18 @@ namespace Conduits {
         virtual void            manual_acknowledge_conduit(Raw::ConduitRef, InfoFunc, MessageFunc);
 
         virtual void send_on_conduit(Raw::ConduitRef, Raw::IMessage*);
-        virtual void send_on_conduit_and_handle_response(Raw::ConduitRef, BaseNexusMessage*);
         virtual void close_conduit(Raw::ConduitRef);
         virtual void close_all_conduits();
 
         virtual void async_add_ad_hoc_message(Raw::IMessage*);
         
         virtual void make_orphan();
+
+            // Utility
+        
+        virtual void setup_use_queue_for_release_event(BaseNexusMessage * reply);
+
+        virtual void async_handle_message_released(BaseNexusMessage*);
 
             // User thread usage
 

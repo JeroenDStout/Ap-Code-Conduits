@@ -29,6 +29,7 @@ namespace Conduits {
 
             try {
                 f();
+                return;
             }
             catch (BlackRoot::Debug::Exception * e) {
                 error = "Exception was thrown: ";
@@ -46,7 +47,7 @@ namespace Conduits {
             if (!Raw::ResponseDesire::response_is_possible(msg->get_response_expectation())) {
                 using cout = BlackRoot::Util::Cout;
                 cout{} << "Message had exception which could not be sent as response:" << std::endl
-                    << error;
+                    << error << std::endl;
             }
             
                 // Auto create reply if needed
@@ -54,6 +55,9 @@ namespace Conduits {
             auto * reply = new Conduits::DisposableMessage();
             reply->Message_String = error;
 
+            reply->sender_prepare_for_send();
+
+            msg->set_response(reply);
             msg->set_FAILED();
         }
 

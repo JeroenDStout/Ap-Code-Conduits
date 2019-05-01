@@ -6,6 +6,7 @@
 #include "BlackRoot/Pubc/Assert.h"
 
 #include "Conduits/Pubc/Savvy Relay Receiver.h"
+#include "Conduits/Pubc/Base Nexus Message.h"
 
 using namespace Conduits;
 
@@ -34,6 +35,15 @@ void SavvyRelayMessageReceiver::savvy_handle_http(const JSON http_request, JSON 
 
 void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IMessage * msg, const JSON http_request, JSON & http_reply, std::string & body)
 {
+        // Internally forward this as a message through
+        // a dummy base nexus message; we fully assume
+        // it will be handled immediately. However, 
+        // RMR calls may not release the message itself,
+        // so we do not worry about deallocation.
+    Conduits::BaseNexusMessage await_msg;
+    await_msg.Response_Desire = Conduits::Raw::ResponseDesire::required;
+    this->internal_rmr_try_call_immediate(call.c_str(), &await_msg);
+
     const auto & class_name = this->internal_get_rmr_class_name();
 
 	body = "<!doctype html>\n";
@@ -42,26 +52,33 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IM
     body.append("  <title>").append(class_name).append("</title>\n");
     body.append(" </head>\n");
     body.append(" <body>\n");
-	body.append("  <h1>").append(class_name).append(" :: ").append(call).append("</h1>\n");
+	body.append("  <h1>").append(class_name).append(" :: ").append(call).append(" — ");
+    body.append(await_msg.result_is_OK() ? "OK" : "Failed").append("</h1>\n");
 
-        // We do not care about the result of the call;
-        // we just call it, then report on the results
-    this->internal_rmr_try_call_immediate(call.c_str(), msg);
+    if (await_msg.Response) {
+        auto * response = await_msg.Response;
 
-	body.append("  <p><b>").append(msg->get_message_string()).append("</b></p>\n");
-
-        // Do a raw output
-    size_t segment_count = msg->get_message_segment_count();
-    if (segment_count > 0) {
-        std::vector<Conduits::Raw::SegmentData> segments;
-        segments.resize(segment_count);
-        msg->get_message_segment_list(&segments.front(), segment_count);
-
-            // Output every segment as a string
-        for (auto & elem : segments) {
-	        body.append("  <p><b>Segment '").append(elem.Name).append("'</b><br/>\n   ");
-            body.append((char*)elem.Data, elem.Length).append("</p>\n");
+        const char * str = response->get_message_string();
+        if (str && str[0]) {
+	        body.append("  <p><b>").append(str).append("</b></p>\n");
         }
+
+            // Do a raw output
+        size_t segment_count = response->get_message_segment_count();
+        if (segment_count > 0) {
+            std::vector<Conduits::Raw::SegmentData> segments;
+            segments.resize(segment_count);
+            response->get_message_segment_list(&segments.front(), segment_count);
+
+                // Output every segment as a string
+            for (auto & elem : segments) {
+	            body.append("  <p><b>Segment '").append(elem.Name).append("'</b><br/>\n   ");
+                body.append((char*)elem.Data, elem.Length).append("</p>\n");
+            }
+        }
+
+        response->set_OK();
+        response->release();
     }
 
 	body.append("  <h1>Relay</h1>\n");
@@ -132,13 +149,14 @@ void SavvyRelayMessageReceiver::_dir(RawRelayMessage * msg) noexcept
         auto * reply = new Conduits::DisposableMessage();
         reply->Segment_Map[""] = response.dump();
 
+        msg->set_response(reply);
         msg->set_OK();
     });
 }
 
 void SavvyRelayMessageReceiver::_http(RawRelayMessage * msg) noexcept
 {
-    savvy_try_wrap_read_json(msg, "", [&](JSON http_request) {
+    savvy_try_wrap_read_json(msg, "header", [&](JSON http_request) {
         JSON http_reponse;
         std::string message_body;
 

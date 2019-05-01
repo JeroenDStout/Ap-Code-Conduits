@@ -63,6 +63,8 @@ namespace Conduits {
         virtual void     add_message_segments_from_list(const SegmentList &);
 
         void             sender_prepare_for_send();
+
+        bool             result_is_OK();
         
         // --- Implementation of IMessage
         

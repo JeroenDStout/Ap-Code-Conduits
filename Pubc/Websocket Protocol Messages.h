@@ -46,7 +46,7 @@ namespace Protocol {
         using OKState       = Raw::OKState::Type;
         using FailState     = Raw::FailState::Type;
 
-        using SegmentElem   = std::pair<std::string, Raw::SegmentData>;
+        using SegmentElem   = Raw::SegmentData;
         using SegmentList   = std::vector<SegmentElem>;
 
         StateFlags::Type  Flags;
@@ -84,16 +84,46 @@ namespace Protocol {
             if (b) { this->Flags |= StateFlags::Connexion_Failure; }
             else { this->Flags &= ~StateFlags::Connexion_Failure; }
         }
+        void set_no_response_expected(bool b) {
+            if (b) { this->Flags |= StateFlags::No_response_Expected; }
+            else { this->Flags &= ~StateFlags::No_response_Expected; }
+        }
+        void set_timed_out(bool b) {
+            if (b) { this->Flags |= StateFlags::Timed_Out; }
+            else { this->Flags &= ~StateFlags::Timed_Out; }
+        }
+        void set_receiver_will_not_handle(bool b) {
+            if (b) { this->Flags |= StateFlags::Receiver_Will_Not_Handle; }
+            else { this->Flags &= ~StateFlags::Receiver_Will_Not_Handle; }
+        }
 
-        bool get_is_response()  const         { return 0 != (this->Flags & StateFlags::Is_Response); }
-        bool get_is_OK() const                { return 0 != (this->Flags & StateFlags::Is_OK); }
-        bool get_confirm_open_conduit() const { return 0 != (this->Flags & StateFlags::Confirm_Opened_Conduit); }
-        bool get_accepts_response() const     { return 0 != (this->Flags & StateFlags::Accepts_Response); }
-        bool get_connexion_failure() const    { return 0 != (this->Flags & StateFlags::Connexion_Failure); }
+        bool get_is_response()  const               { return 0 != (this->Flags & StateFlags::Is_Response); }
+        bool get_is_OK() const                      { return 0 != (this->Flags & StateFlags::Is_OK); }
+        bool get_confirm_open_conduit() const       { return 0 != (this->Flags & StateFlags::Confirm_Opened_Conduit); }
+        bool get_accepts_response() const           { return 0 != (this->Flags & StateFlags::Accepts_Response); }
+        bool get_connexion_failure() const          { return 0 != (this->Flags & StateFlags::Connexion_Failure); }
+        bool get_no_response_expected() const       { return 0 != (this->Flags & StateFlags::No_response_Expected); }
+        bool get_timed_out() const                  { return 0 != (this->Flags & StateFlags::Timed_Out); }
+        bool get_receiver_will_not_handle() const   { return 0 != (this->Flags & StateFlags::Receiver_Will_Not_Handle); }
         
+        void add_segments_from_message(Raw::IMessage*);
+
         static MessageScratch try_parse_message(void * msg, size_t length);
         static std::string    try_stringify_message(const MessageScratch &);
     };
+    
+    inline void MessageScratch::add_segments_from_message(Raw::IMessage * msg) {
+        auto count = msg->get_message_segment_count();
+        if (0 == count)
+            return;
+            
+            // Make enough free space to add segments
+        auto prev_size = this->Segments.size();
+        this->Segments.resize(prev_size + count);
+
+            // Directly set the segments in our list
+        msg->get_message_segment_list(this->Segments.data() + prev_size, count);
+    }
 
         // Implement Message from client
 
@@ -134,15 +164,14 @@ namespace Protocol {
             for (uint8 seg = 0; seg < segmentCount; seg++) {
                 SegmentElem elem;               
                 
-                elem.second.Name   = msg;                   // Segment name (n, ends with \0)
-                elem.first         = msg;
-                msg += elem.first.length() + 1;
+                elem.Name   = msg;                          // Segment name (n, ends with \0)
+                msg += strlen(elem.Name) + 1;
 
-                elem.second.Length = *(uint32*)(msg);       // Segment length (4)
+                elem.Length = *(uint32*)(msg);              // Segment length (4)
                 msg += 4;
 
-                elem.second.Data   = (void*)msg;            // Segment data (n)
-                msg += elem.second.Length;
+                elem.Data   = (void*)msg;                   // Segment data (n)
+                msg += elem.Length;
 
                 ms.Segments.push_back(elem);
             }
@@ -179,10 +208,10 @@ namespace Protocol {
             flags |= StateFlags::Has_Segments;
             required_size += 1;                             // Segment count (1)
             for (const auto & seg : msg.Segments) {
-                DbAssertFatal(seg.second.Length <= 0xFFFFFFFF);
-                required_size += seg.first.size() + 1;      // String name ending in \0 (n + 1)
+                DbAssertFatal(seg.Length <= 0xFFFFFFFF);
+                required_size += strlen(seg.Name) + 1;      // String name ending in \0 (n + 1)
                 required_size += 4;                         // Segment size (4)
-                required_size += seg.second.Length;         // Segment data (n)
+                required_size += seg.Length;                // Segment data (n)
             }
         }
 
@@ -212,11 +241,11 @@ namespace Protocol {
             ret.append((char*)&segment_count, 1);           // Segment count (1)
             
             for (const auto & seg : msg.Segments) {
-                ret.append(seg.first);
+                ret.append(seg.Name);
                 ret.append('\0');;                          // String name ending in \0 (n + 1)
 
-                ret.append((char*)&seg.second.Length);      // Segment size (4)
-                ret.append((char*)seg.second.Data);         // Segment data (n)
+                ret.append((char*)&seg.Length);             // Segment size (4)
+                ret.append((char*)seg.Data);                // Segment data (n)
             }
         }
 

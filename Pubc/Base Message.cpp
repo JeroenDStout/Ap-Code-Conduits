@@ -31,7 +31,8 @@ void IBaseMessage::set_message_string_as_path(std::string str)
 
 void IBaseMessage::sender_prepare_for_send()
 {
-    this->Adapting_String   = this->Message_String.c_str();
+    this->IMessage::Message_String = this->Message_String.c_str();
+    this->Adapting_String          = this->Message_String.c_str();
 }
 
     //  Receiver
@@ -106,4 +107,12 @@ void IBaseMessage::set_response(IMessage * msg) noexcept
     }
 
     this->Response = msg;
+}
+
+    //  Utility
+    // --------------------
+
+bool IBaseMessage::result_is_OK()
+{
+    return this->Message_State == MessageState::ok;
 }

@@ -206,6 +206,31 @@ void BaseNexus::stop_accepting_threads_and_return()
     this->Cv_Queue_And_Events.notify_all();
 }
 
+void BaseNexus::close_all_conduits()
+{
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    
+        // Transfer the conduit refs to a temporary vector
+    std::vector<std::pair<INexus*, Raw::ConduitRef>> closed;
+    closed.reserve(this->Send_Map.size());
+
+    for (auto & elem : this->Send_Map) {
+        closed.push_back(elem.second);
+    }
+
+        // Clear all elements
+    this->Send_Map.clear();
+    this->Info_Map.clear();
+    this->Message_Map.clear();
+
+    lk.unlock();
+
+        // Finally notify the others we removed them all
+    for (auto & elem : closed) {
+        elem.first->receive_closed_conduit_notify(elem.second);
+    }
+}
+
 void BaseNexus::stop_gracefully()
 {
     DbAssert(!this->Threads_Should_Keep_Waiting);
@@ -307,6 +332,7 @@ void BaseNexus::receive_closed_conduit_notify(Raw::ConduitRef ref) noexcept
     if (it == this->Info_Map.end()) {
         return;
     }
+    auto sm = it->second;
     
         // Erase the conduit from all the maps
     this->Info_Map.erase(it);
@@ -319,8 +345,6 @@ void BaseNexus::receive_closed_conduit_notify(Raw::ConduitRef ref) noexcept
     if (!this->Is_Available_For_Incoming) {
         return;
     }
-
-    auto sm = it->second;
 
     lk.unlock();
 
@@ -361,6 +385,39 @@ void BaseNexus::send_on_conduit(Raw::ConduitRef ref, Raw::IMessage * msg)
     DbAssertMsgFatal(0, "Conduit did not accept message");
 }
 
+void BaseNexus::setup_use_queue_for_release_event(BaseNexusMessage * msg)
+{
+    msg->Associated_Nexus = this;
+    
+        // Add to the pending list; this nexus
+        // may not die until these mesages have
+        // returned as they hold a pointer to us
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->Handling_Messages.push_back(msg);
+}
+
+void BaseNexus::async_handle_message_released(BaseNexusMessage * msg)
+{
+    QueueObject obj;
+    obj.Type = QueueObjectType::message_reply;
+    obj.Message = msg;
+
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+
+        // Remove from the pending list; for the
+        // purpose of failing gracefully we do not
+        // actually care about whether it was here
+    for (size_t i = 0; i < this->Handling_Messages.size(); i++) {
+        if (this->Handling_Messages[i] != msg)
+            continue;
+        this->Handling_Messages.erase(this->Handling_Messages.begin() + i);
+        break;
+    }
+
+        // Queue the object
+    this->internal_sync_push_to_queue(obj);
+}
+
     //  Messages internal
     // --------------------
     
@@ -371,8 +428,9 @@ bool BaseNexus::receive_on_conduit(Raw::ConduitRef ref, Raw::IMessage * msg) noe
     obj.Type = QueueObjectType::conduit_message;
     obj.Received_On_Conduit = ref;
     obj.Message = msg;
-
-    this->internal_push_to_queue(std::move(obj));
+    
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->internal_sync_push_to_queue(obj);
 
     return true;
 }
@@ -386,7 +444,6 @@ void BaseNexus::internal_sync_dismiss_unaccepted_object(QueueObject object)
         object.Message->release();
         break;
     case QueueObjectType::conduit_update:
-        this->internal_sync_handle_conduit_update(object);
         break;
     case QueueObjectType::message_reply:
         ((BaseNexusMessage*)object.Message)->destroy_for_nexus();
@@ -407,16 +464,14 @@ Raw::ConduitRef BaseNexus::internal_get_free_conduit_id()
     return ref;
 }
 
-void BaseNexus::internal_push_to_queue(QueueObject obj)
+void BaseNexus::internal_sync_push_to_queue(QueueObject obj)
 {
-    std::unique_lock<std::mutex> lk(this->Mx_Access);
-
     if (!this->Is_Available_For_Incoming) {
         this->internal_sync_dismiss_unaccepted_object(obj);
+        return;
     }
 
     this->Primary_Queue.push(obj);
-    lk.unlock();
 
     this->Cv_Queue_And_Events.notify_one();
 }
@@ -424,11 +479,13 @@ void BaseNexus::internal_push_to_queue(QueueObject obj)
 void BaseNexus::async_add_ad_hoc_message(Raw::IMessage * msg)
 {
     DbAssert(!this->Is_Orphan);
-    DbAssert(!this->Is_Available_For_Incoming);
+    DbAssert(this->Is_Available_For_Incoming);
     
     QueueObject obj;
     obj.Type = QueueObjectType::ad_hoc_message;
     obj.Message = msg;
-
-    this->internal_push_to_queue(std::move(obj));
+    
+    std::unique_lock<std::mutex> lk(this->Mx_Access);
+    this->internal_sync_push_to_queue(std::move(obj));
 }
+
