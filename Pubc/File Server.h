@@ -83,6 +83,9 @@ namespace Util {
 
             reply->Segment_Map["header"] = httpRet.dump();
 
+            reply->sender_prepare_for_send();
+            msg->set_response(reply.release());
+
             return httpRet;
         });
 
