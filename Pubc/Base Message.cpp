@@ -100,7 +100,7 @@ void IBaseMessage::set_FAILED(FailState state) noexcept
 
 void IBaseMessage::set_response(IMessage * msg) noexcept
 {
-    if (this->Response_Desire != Raw::ResponseDesire::required) {
+    if (this->Response_Desire == Raw::ResponseDesire::not_allowed) {
         msg->set_FAILED(Raw::FailState::failed_no_response_expected);
         msg->release();
         return;
