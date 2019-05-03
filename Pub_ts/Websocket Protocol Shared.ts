@@ -6,7 +6,7 @@
     //  * Websocket Protocol Shared.h
 
 export class Protocol {
-    static Version                   = "v0.0.1";
+    static Version                   = "v0.0.2";
     
     static What_Ho_Message           = "what-ho!";
     static What_Ho_Response          = "what-ho, what-ho!";

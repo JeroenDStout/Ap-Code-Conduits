@@ -150,7 +150,8 @@ namespace Protocol {
 
         if (0 != (ms.Flags & StateFlags::Has_String)) {
             ms.String = msg;                                // String value (n, ends with \0)
-            msg += strlen(msg) + 1;
+            ms.String_Length = (uint16)strlen(msg);
+            msg += ms.String_Length + 1;
         }
         else {
             ms.String               = nullptr;
@@ -165,7 +166,7 @@ namespace Protocol {
                 SegmentElem elem;               
                 
                 elem.Name   = msg;                          // Segment name (n, ends with \0)
-                msg += strlen(elem.Name) + 1;
+                msg += (uint16)strlen(elem.Name) + 1;
 
                 elem.Length = *(uint32*)(msg);              // Segment length (4)
                 msg += 4;
@@ -200,7 +201,8 @@ namespace Protocol {
             required_size += 4;                             // Conduit ID (4)
         }
         
-        if (0 != (msg.Flags & StateFlags::Has_String)) {
+        if (0 != msg.String && msg.String_Length > 0) {
+            flags |= StateFlags::Has_String;
             required_size += msg.String_Length + 1;         // String value ending in \0 (n + 1)
         }
 
@@ -215,12 +217,12 @@ namespace Protocol {
             }
         }
 
-            // Store correct values
+            // Write message
 
         std::string ret;
         ret.reserve(required_size);
 
-        ret.append((char*)&msg.Flags, 1);                   // Flags (1)
+        ret.append((char*)&flags, 1);                       // Flags (1)
 
         ret.append((char*)&msg.Recipient_ID, 4);            // Recipient ID (4)
         
@@ -231,9 +233,9 @@ namespace Protocol {
             ret.append((char*)&msg.Opened_Conduit_ID, 4);   // Conduit ID (4)
         }
         
-        if (0 != (msg.Flags & StateFlags::Has_String)) {
+        if (0 != (flags & StateFlags::Has_String)) {
             ret.append(msg.String, msg.String_Length);
-            ret.append('\0');                               // String value ending in \0 (n + 1)
+            ret.append("\0", 1);                            // String value ending in \0 (n + 1)
         }
         
         if (msg.Segments.size() > 0) {
@@ -242,10 +244,10 @@ namespace Protocol {
             
             for (const auto & seg : msg.Segments) {
                 ret.append(seg.Name);
-                ret.append('\0');;                          // String name ending in \0 (n + 1)
+                ret.append("\0", 1);                        // String name ending in \0 (n + 1)
 
-                ret.append((char*)&seg.Length);             // Segment size (4)
-                ret.append((char*)seg.Data);                // Segment data (n)
+                ret.append((char*)&seg.Length, 4);          // Segment size (4)
+                ret.append((char*)seg.Data, seg.Length);    // Segment data (n)
             }
         }
 

@@ -10,7 +10,7 @@
 namespace Conduits {
 namespace Protocol {
 
-	static const char * Protocol_Version          = "v0.0.1";
+	static const char * Protocol_Version          = "v0.0.2";
 
 	static const char * Protocol_What_Ho_Message  = "what-ho!";
 	static const char * Protocol_What_Ho_Response = "what-ho, what-ho!";

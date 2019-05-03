@@ -3,60 +3,84 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 class MessageStateFlags {
-    static Has_String           = 0x01;
-    static Has_Segments         = 0x02;
-    static Is_Response          = 0x04;
-    
-        // if response
-    static Has_Succeeded        = 0x08;
-    
-        // if response succeeded
-    static Confirm_Open_Conduit = 0x10;
+    static Has_String               = 0x01;
+    static Has_Segments             = 0x02;
+    static Is_Response              = 0x04;
 
-        // if response failed
-    static Connexion_Failure    = 0x10;
+        // if response...
+    static Is_OK                    = 0x08;
 
-        // if not response
-    static Requires_Response    = 0x08
-    static Ping_Conduit         = 0x10;
+        // if response is OK...
+    static Confirm_Opened_Conduit   = 0x10;
+
+        // if response not OK...
+    static Connexion_Failure        = 0x10;
+    static No_response_Expected     = 0x20;
+    static Timed_Out                = 0x40;
+    static Receiver_Will_Not_Handle = 0x80;
+
+        // if not response...
+    static Accepts_Response         = 0x08;
+    static Ping_Conduit             = 0x10;
+    static Close_Conduit            = 0x20;
 }
 
 export class Message {
     Recipient_ID = 0x0;
     Reply_To_Me_ID = 0x0;
+    Opened_Conduit_ID = 0x0;
     Flags = 0x0;
 
-    String = "";
-    Segments = new Map<number, Uint8Array>();
+    String: string|undefined = undefined;
+    Segments = new Map<string, Uint8Array>();
 
     set_is_response(b:boolean):void {
         if (b) { this.Flags |= MessageStateFlags.Is_Response; }
         else { this.Flags &= ~MessageStateFlags.Is_Response; }
     }
-    set_has_succeeded(b:boolean):void {
-        if (b) { this.Flags |= MessageStateFlags.Has_Succeeded; }
-        else { this.Flags &= ~MessageStateFlags.Has_Succeeded; }
+    set_is_OK(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Is_OK; }
+        else { this.Flags &= ~MessageStateFlags.Is_OK; }
     }
-    set_requires_repsonse(b:boolean):void {
-        if (b) { this.Flags |= MessageStateFlags.Requires_Response; }
-        else { this.Flags &= ~MessageStateFlags.Requires_Response; }
+    set_conform_open_conduit(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Confirm_Opened_Conduit; }
+        else { this.Flags &= ~MessageStateFlags.Confirm_Opened_Conduit; }
     }
-    set_connexion_error(b:boolean):void {
+    set_accepts_response(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Accepts_Response; }
+        else { this.Flags &= ~MessageStateFlags.Accepts_Response; }
+    }
+    set_connexion_failure(b:boolean):void {
         if (b) { this.Flags |= MessageStateFlags.Connexion_Failure; }
         else { this.Flags &= ~MessageStateFlags.Connexion_Failure; }
     }
-
-    get_is_response(): boolean             { return 0 != (this.Flags & MessageStateFlags.Is_Response); }
-    get_has_succeeded(): boolean           { return 0 != (this.Flags & MessageStateFlags.Has_Succeeded); }
-    get_requires_response(): boolean       { return 0 != (this.Flags & MessageStateFlags.Requires_Response); }
-    get_confirm_open_conduit(): boolean    { return 0 != (this.Flags & MessageStateFlags.Confirm_Open_Conduit); }
-    get_has_connecion_failure(): boolean   { return 0 != (this.Flags & MessageStateFlags.Connexion_Failure); }
-
-    set_segment_from_json(index: number, json: any) {
-        this.Segments.set(index, (new TextEncoder()).encode(JSON.stringify(json)));
+    set_no_response_expected(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.No_response_Expected; }
+        else { this.Flags &= ~MessageStateFlags.No_response_Expected; }
     }
-    get_segment_as_json(index: number): any {
-        let segment = this.Segments.get(index);
+    set_timed_out(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Timed_Out; }
+        else { this.Flags &= ~MessageStateFlags.Timed_Out; }
+    }
+    set_receiver_will_not_handle(b:boolean):void {
+        if (b) { this.Flags |= MessageStateFlags.Receiver_Will_Not_Handle; }
+        else { this.Flags &= ~MessageStateFlags.Receiver_Will_Not_Handle; }
+    }
+
+    get_is_response(): boolean                { return 0 != (this.Flags & MessageStateFlags.Is_Response); }
+    get_is_OK(): boolean                      { return 0 != (this.Flags & MessageStateFlags.Is_OK); }
+    get_confirm_open_conduit(): boolean       { return 0 != (this.Flags & MessageStateFlags.Confirm_Opened_Conduit); }
+    get_accepts_response(): boolean           { return 0 != (this.Flags & MessageStateFlags.Accepts_Response); }
+    get_connexion_failure(): boolean          { return 0 != (this.Flags & MessageStateFlags.Connexion_Failure); }
+    get_no_response_expected(): boolean       { return 0 != (this.Flags & MessageStateFlags.No_response_Expected); }
+    get_timed_out(): boolean                  { return 0 != (this.Flags & MessageStateFlags.Timed_Out); }
+    get_receiver_will_not_handle(): boolean   { return 0 != (this.Flags & MessageStateFlags.Receiver_Will_Not_Handle); }
+
+    set_segment_from_json(name: string, json: any) {
+        this.Segments.set(name, (new TextEncoder()).encode(JSON.stringify(json)));
+    }
+    get_segment_as_json(name: string): any {
+        let segment = this.Segments.get(name);
         return JSON.parse((new TextDecoder()).decode(segment));
     }
 }
@@ -71,11 +95,11 @@ function to_uint32(input: number, out: Uint8Array, index: number): void {
     out[index+3] = input & (255);
 }
 
-function to_uint16(input: number, out: Uint8Array, index: number): void {
-    out[index + 0] = input & (255);
-    input >>= 8
-    out[index + 1] = input & (255);
-}
+//function to_uint16(input: number, out: Uint8Array, index: number): void {
+//    out[index + 0] = input & (255);
+//    input >>= 8
+//    out[index + 1] = input & (255);
+//}
 
 function to_uint8(input: number, out: Uint8Array, index: number): void {
     out[index + 0] = input & (255);
@@ -89,11 +113,11 @@ function from_uint32(input: Uint8Array, index: number): number {
     return out;
 }
 
-function from_uint16(input: Uint8Array, index: number): number {
-    let out = input[index+0];
-    out += input[index+1] << 8;
-    return out;
-}
+//function from_uint16(input: Uint8Array, index: number): number {
+//    let out = input[index+0];
+//    out += input[index+1] << 8;
+//    return out;
+//}
 
 function from_uint8(input: Uint8Array, index: number): number {
     let out = input[index+0];
@@ -103,45 +127,60 @@ function from_uint8(input: Uint8Array, index: number): number {
 export function try_parse_message(msg: Uint8Array): Message {
     let ret = new Message();
     let decoder = new TextDecoder();
-
-            // Fixed header (0) (9 bytes)
     
-    ret.Recipient_ID            = from_uint32(msg,  0);         // H+0 Recipient ID (4)
-    ret.Reply_To_Me_ID          = from_uint32(msg,  4);         // H+4 Reply-To-Me ID (4)
-    ret.Flags                   = from_uint8(msg,  8);          // H+8 Flags (1)
+    let idx = 0;
 
-    let read_point = 9;
-    
-            // Optional if has string (H+9) (2+x)
+    ret.Flags                   = from_uint8(msg, idx);         // Flags (1)
+    idx += 1;
 
-    if (0 != (ret.Flags & MessageStateFlags.Has_String)) {
-        let str_length          = from_uint16(msg, read_point); // St+0 String length (2)
-        read_point += 2;
-        
-                                                                // St+2 String (x)
-        ret.String = decoder.decode(msg.slice(read_point, read_point + str_length));
-        read_point += str_length;
+    ret.Recipient_ID            = from_uint32(msg, idx);        // Recipient (4)
+    idx += 4;
+
+    if (ret.get_accepts_response()) {
+        ret.Reply_To_Me_ID      = from_uint32(msg, idx);        // Response ID (4)
+        idx += 4;
     }
     else {
-        ret.String = "";
+        ret.Reply_To_Me_ID      = -1;
     }
 
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
-            
+    if (ret.get_confirm_open_conduit()) {
+        ret.Opened_Conduit_ID   = from_uint32(msg, idx);        // Conduit ID (4)
+        idx += 4;
+    }
+    else {
+        ret.Opened_Conduit_ID   = -1;
+    }
+
+    if (0 != (ret.Flags & MessageStateFlags.Has_String)) {
+        let itt = idx;
+        while (msg[itt] != 0) {
+            itt += 1;
+        }
+        ret.String = decoder.decode(msg.slice(idx, itt));       // String value (n, ends with \0)
+        idx = itt + 1;
+    }
+    else {
+        ret.String = undefined;
+    }
+
     if (0 != (ret.Flags & MessageStateFlags.Has_Segments)) {
-        let seg_count          = from_uint8(msg, read_point);   // Sg+0 Segment count (1)
-        read_point += 1;
+        let segment_count = from_uint8(msg, idx);               // Segment count (1)
+        idx += 1;
 
-        for (let index = 0; index < seg_count; index++) {
-            let seg_index      = from_uint8(msg, read_point);   // Sg+(5*n+Σx_n)+0 Index (1)
-            read_point += 1;
-            
-            let seg_length     = from_uint32(msg, read_point);  // Sg+(5*n+Σx_n)+1 Length (4)
-            read_point += 4;
+        for (let seg = 0; seg < segment_count; seg++) {
+            let itt = idx;
+            while (msg[itt] != 0) {
+                itt += 1;
+            }
+            let name = decoder.decode(msg.slice(idx, itt));     // Segment name (n, ends with \0)
+            idx = itt + 1;
 
-                                                                // Sg+(5*n+Σx_n)+5 Data (x_n)
-            ret.Segments.set(seg_index, msg.slice(read_point, read_point + seg_length) );
-            read_point += seg_length;
+            let seg_length  = from_uint32(msg, idx);            // Segment length (4)
+            idx += 4;
+                                                                // Segment data (n)
+            ret.Segments.set(name, msg.slice(idx, idx + seg_length));
+            idx += seg_length;
         }
     }
     
@@ -156,78 +195,96 @@ export function try_stringify_message(msg: Message): Uint8Array {
         throw "Reply-to-me ID out of range";
     }
 
+    console.log(msg);
+
     let encoder = new TextEncoder();
 
     let req_size: number;
     let _msg_string: Uint8Array|undefined = undefined;
+    let flags = msg.Flags;
     
-    if (msg.String.length > 0) {
-        _msg_string = encoder.encode(msg.String);
-    }
-
-            // Fixed header, 9 bytes (0) (9 bytes)
-        
-    req_size = 9;
-        
-            // Optional if has message (H+9) (2+x)
-            
-    if (msg.String.length > 0) {
-        let msg_string = _msg_string as Uint8Array;
-
-        req_size += 2 + msg_string.byteLength;
-        msg.Flags |= MessageStateFlags.Has_String;
+    if (msg.String !== undefined && (msg.String as string).length > 0) {
+        let fin_string = msg.String as string;
+        fin_string += '\0';
+        _msg_string = encoder.encode(fin_string);
     }
     
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
-            
+    req_size = 5;                                           // Flags + Recipient ID (5)
+
+    if (msg.get_accepts_response()) {
+        req_size += 4;                                      // Response ID (4)
+    }
+    if (msg.get_confirm_open_conduit()) {
+        req_size += 4;                                      // Conduit ID (4)
+    }
+
+    if (msg.String !== undefined && msg.String.length > 0) {
+        flags |= MessageStateFlags.Has_String;
+        req_size += (_msg_string as Uint8Array).byteLength; // String value ending in \0 (n + 1)
+    }
+
+    let uint8names = new Map<string, Uint8Array>();
     if (msg.Segments.size > 0) {
-        req_size += 1;
+        flags |= MessageStateFlags.Has_Segments;
+        req_size += 1;                                      // Segment count (1)
+        
         msg.Segments.forEach((value, index) => {
-            req_size += 5 + value.byteLength;
+            let name = encoder.encode(index);
+            uint8names[index] = name;
+            req_size += name.byteLength + 1;                // String name ending in \0 (n + 1)
+            req_size += 4;                                  // Segment size (4)
+            req_size += value.byteLength;                   // Segment data (n)
         });
-        msg.Flags |= MessageStateFlags.Has_Segments;
     }
 
         // Create response
     let out_data = new Uint8Array(req_size);
-
-            // Fixed header (0) (9 bytes)
             
-    to_uint32(msg.Recipient_ID,    out_data, 0);          // H+0 Recipient ID (4)
-    to_uint32(msg.Reply_To_Me_ID,  out_data, 4);          // H+4 Reply-To-Me ID (4)
-    to_uint8(msg.Flags,            out_data, 8);          // H+8 Flags (1)
+    let idx = 0;
 
-    let write_point = 9;
-            
-            // Optional if has string (H+9) (2+x)
-            
-    if (msg.String.length > 0) {
-        let msg_string = _msg_string as Uint8Array;
+    to_uint8(flags, out_data, idx);                         // Flags (1)
+    idx += 1;
 
-        to_uint16(msg_string.byteLength,  out_data, write_point);   // St+0 String length (2)
-        write_point += 2;
-        
-        for (let read = 0; read < msg_string.byteLength; read++) {  // St+2 String (x)
-            out_data[write_point] = msg_string[read];
-            write_point += 1;
+    to_uint32(msg.Recipient_ID,out_data, idx);              // Recipient ID (4)
+    idx += 4;
+
+    if (msg.get_accepts_response()) {
+        to_uint32(msg.Reply_To_Me_ID, out_data, idx);       // Response ID (4)
+        idx += 4;
+    }
+    if (msg.get_confirm_open_conduit()) {
+        to_uint32(msg.Opened_Conduit_ID, out_data, idx);    // Conduit ID (4)
+        idx += 4;
+    }
+    
+    if (_msg_string !== undefined) {
+        let msg_string = _msg_string as Uint8Array;         // String value ending in \0 (n + 1)
+        for (let read = 0; read < msg_string.byteLength; read++) {
+            out_data[idx] = msg_string[read];
+            idx += 1;
         }
     }
-            // Optional if has segments (H+9 or St+2+x) (5*n+Σx_n)
-
+    
     if (msg.Segments.size > 0) {
-        to_uint8(msg.Segments.size, out_data, write_point);       // Sg+0 Segment count (1)
-        write_point += 1;
+        to_uint8(msg.Segments.size, out_data, idx);         // Segment count (1)
+        idx += 1;
 
         msg.Segments.forEach((value, index) => {
-            to_uint8(index, out_data, write_point);               // Sg+(5*n+Σx_n)+0 Index (1)
-            write_point += 1;
+            let name = uint8names[index];
 
-            to_uint32(value.byteLength, out_data, write_point);   // Sg+(5*n+Σx_n)+1 Size (4)
-            write_point += 4;
+            for (let read = 0; read < name.byteLength; read++) {  // String name ending in \0 (n + 1)
+                out_data[idx] = name[read];
+                idx += 1;
+            }
+            out_data[idx] = 0;
+            idx += 1;           
+            
+            to_uint32(value.byteLength, out_data, idx);           // Segment size (4)
+            idx += 4;
         
-            for (let read = 0; read < value.byteLength; read++) { // Sg+(5*n+Σx_n)+5 Data (x_n)
-                out_data[write_point] = value[read];
-                write_point += 1;
+            for (let read = 0; read < value.byteLength; read++) { // Segment data (n)
+                out_data[idx] = value[read];
+                idx += 1;
             }
         });
     }
