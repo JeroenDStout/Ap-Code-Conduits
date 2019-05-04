@@ -26,9 +26,9 @@ void SavvyRelayMessageReceiver::savvy_handle_http(const JSON http_request, JSON 
     body.append(" <head>\n");
     body.append("  <title>").append(class_name).append("</title>\n");
     body.append(" </head>\n");
-    body.append(" <body>\n");
+    body.append(" <body style=\"padding: 1em 2em 2em 2em\">\n");
 	body.append("  <h1>").append(class_name).append(" (Base Relay)</h1>\n");
-	body.append("  <p>").append(this->html_create_action_relay_string()).append("</p>\n");
+	body.append("  <div style=\"padding-left:.5em\">").append(this->html_create_action_relay_string()).append("</div>\n");
     body.append(" </body>\n");
     body.append("</html>");
 }
@@ -51,7 +51,7 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IM
     body.append(" <head>\n");
     body.append("  <title>").append(class_name).append("</title>\n");
     body.append(" </head>\n");
-    body.append(" <body>\n");
+    body.append(" <body style=\"padding: 1em 2em 2em 2em\">\n");
 	body.append("  <h1>").append(class_name).append(" :: ").append(call).append(" — ");
     body.append(await_msg.result_is_OK() ? "OK" : "Failed").append("</h1>\n");
 
@@ -60,7 +60,7 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IM
 
         const char * str = response->get_message_string();
         if (str && str[0]) {
-	        body.append("  <p><b>").append(str).append("</b></p>\n");
+	        body.append("  <div style=\"padding-left:.5em\"><b>").append(str).append("</b></div>\n");
         }
 
             // Do a raw output
@@ -72,8 +72,8 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IM
 
                 // Output every segment as a string
             for (auto & elem : segments) {
-	            body.append("  <p><b>Segment '").append(elem.Name).append("'</b><br/>\n   ");
-                body.append((char*)elem.Data, elem.Length).append("</p>\n");
+	            body.append("  <div><b>Segment '").append(elem.Name).append("'</b></div><div style=\"padding-left:.5em\">\n   ");
+                body.append((char*)elem.Data, elem.Length).append("</div>\n");
             }
         }
 
@@ -82,7 +82,7 @@ void SavvyRelayMessageReceiver::savvy_handle_http_call(std::string call, Raw::IM
     }
 
 	body.append("  <h1>Relay</h1>\n");
-	body.append("  <p>").append(this->html_create_action_relay_string()).append("</p>\n");
+	body.append("  <div style=\"padding-left:.5em\">").append(this->html_create_action_relay_string()).append("</div>\n");
     body.append(" </body>\n");
     body.append("</html>");
 }
