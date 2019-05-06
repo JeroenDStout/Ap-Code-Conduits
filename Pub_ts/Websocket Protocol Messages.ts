@@ -195,8 +195,6 @@ export function try_stringify_message(msg: Message): Uint8Array {
         throw "Reply-to-me ID out of range";
     }
 
-    console.log(msg);
-
     let encoder = new TextEncoder();
 
     let req_size: number;
