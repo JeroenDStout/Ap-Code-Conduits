@@ -83,6 +83,8 @@ export class Message implements IMessage {
     }
     get_segment_as_json(name: string): any {
         let segment = this.Segments.get(name);
+        if (segment === undefined)
+            return undefined;
         return JSON.parse((new TextDecoder()).decode(segment));
     }
 }
