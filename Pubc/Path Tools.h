@@ -13,6 +13,19 @@ namespace Util {
     inline std::string Sanitise_Path(std::string str)
     {
         str.erase(std::remove(str.begin(), str.end(),' '), str.end());
+
+        size_t last_index = str.npos;
+        for (auto index = str.find('/', 0); index != str.npos; index = str.find('/', index)) {
+            if (index == 0 || index == last_index + 1) {
+                str.erase(str.begin()+index);
+                continue;
+            }
+            if (index == str.size()-1)
+                break;
+            last_index = index;
+            index++;
+        }
+
         return str;
     }
 
