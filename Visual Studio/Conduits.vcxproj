@@ -166,6 +166,9 @@
     <ClCompile Include="..\Pubc\Savvy Relay Receiver.cpp" />
     <ClCompile Include="..\Pubc\Interface Relay Receiver.cpp" />
     <ClCompile Include="..\Pubc\Version.cpp" />
+    <Text Include="..\Pub_ts\Websocket Protocol Interface.ts">
+      <FileType>Document</FileType>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Meta\generate_meta.txt">

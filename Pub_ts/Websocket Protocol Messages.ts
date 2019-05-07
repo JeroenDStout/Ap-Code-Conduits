@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { IMessage } from './Websocket Protocol Interface'
+
 class MessageStateFlags {
     static Has_String               = 0x01;
     static Has_Segments             = 0x02;
@@ -25,7 +27,7 @@ class MessageStateFlags {
     static Close_Conduit            = 0x20;
 }
 
-export class Message {
+export class Message implements IMessage {
     Recipient_ID = 0x0;
     Reply_To_Me_ID = 0x0;
     Opened_Conduit_ID = 0x0;
