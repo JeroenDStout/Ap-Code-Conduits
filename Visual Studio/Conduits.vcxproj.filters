@@ -2,10 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="..\Pubc\Version.h">
-      <Filter>Core</Filter>
+      <Filter>Version</Filter>
     </ClInclude>
     <ClInclude Include="..\Pubc\Register.h">
-      <Filter>Core</Filter>
+      <Filter>Version</Filter>
     </ClInclude>
     <ClInclude Include="..\Pubc\Interface Raw Message.h">
       <Filter>Raw</Filter>
@@ -66,26 +66,23 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Meta\contributors.json">
-      <Filter>Meta</Filter>
-    </None>
-    <None Include="..\Meta\libraries.json">
-      <Filter>Meta</Filter>
-    </None>
     <None Include="..\Pub_ts\Websocket Protocol Messages.ts">
       <Filter>Socket</Filter>
     </None>
     <None Include="..\Pub_ts\Websocket Protocol Shared.ts">
       <Filter>Socket</Filter>
     </None>
+    <None Include="..\..\BlackRoot\Meta\.brmeta">
+      <Filter>Version</Filter>
+    </None>
+    <None Include="..\Meta\contributors.json">
+      <Filter>Version</Filter>
+    </None>
+    <None Include="..\Meta\libraries.json">
+      <Filter>Version</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Meta">
-      <UniqueIdentifier>{809cf452-6954-4c78-ac6f-44c04101b5d3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core">
-      <UniqueIdentifier>{ee8256a8-4eda-42a0-825e-5d369a9bedf4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Relay">
       <UniqueIdentifier>{ecbc47da-5364-4043-99ed-da1cf20fa3ca}</UniqueIdentifier>
     </Filter>
@@ -104,20 +101,19 @@
     <Filter Include="Socket">
       <UniqueIdentifier>{a5e9c8ae-bb77-4f26-80bb-d3c0fa69b7bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Version">
+      <UniqueIdentifier>{ee8256a8-4eda-42a0-825e-5d369a9bedf4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\Meta\generate_meta.txt">
-      <Filter>Meta</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
+    <Text Include="..\Pub_ts\Websocket Protocol Interface.ts" />
     <Text Include="..\Meta\licence_name.txt">
-      <Filter>Meta</Filter>
+      <Filter>Version</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Pubc\Version.cpp">
-      <Filter>Core</Filter>
+      <Filter>Version</Filter>
     </ClCompile>
     <ClCompile Include="..\Pubc\Interface Relay Receiver.cpp">
       <Filter>Relay</Filter>
@@ -131,8 +127,10 @@
     <ClCompile Include="..\Pubc\Base Message.cpp">
       <Filter>Message</Filter>
     </ClCompile>
-    <ClCompile Include="..\Pub_ts\Websocket Protocol Interface.ts">
-      <Filter>Socket</Filter>
-    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <BRVersionDef Include="..\..\BlackRoot\Meta\.brversion">
+      <Filter>Version</Filter>
+    </BRVersionDef>
   </ItemGroup>
 </Project>
